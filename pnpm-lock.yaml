@@ -42,7 +42,7 @@ importers:
         specifier: ^5.2.2
         version: 5.8.3
 
-  vue/vue-simple:
+  frameworks/vue-simple:
     dependencies:
       pinia:
         specifier: ^3.0.2
@@ -541,7 +541,7 @@ packages:
     dependencies:
       detect-libc: 1.0.3
       is-glob: 4.0.3
-      micromatch: 4.0.5
+      micromatch: 4.0.8
       node-addon-api: 7.1.1
     optionalDependencies:
       '@parcel/watcher-android-arm64': 2.5.1
