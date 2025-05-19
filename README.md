@@ -42,4 +42,4 @@ Simple react-relate demos:
 
 - react-router
 - zustand
-- scss
+- module scss

@@ -6,7 +6,7 @@ export const ZustandDemo: React.FC = () => {
 
   return (
     <div className={style['zustand-demo']}>
-      <h1>Zustand</h1>
+      <h2>Zustand</h2>
       <p>Name: {name}</p>
       <p>Age: {age}</p>
       <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
