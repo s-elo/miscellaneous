@@ -1,5 +1,5 @@
 <template>
-  <h1>Home</h1>
+  <h2>Home</h2>
   <div>
     <HelloWorld msg="Hello Vue 3 + TypeScript + Vite" />
   </div>

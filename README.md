@@ -35,6 +35,7 @@ Simple vue-related demos:
 - vue-router
 - pinia
 - scss
+- massRender(compare with react's useTransition)
 
 ### react-simple
 
@@ -43,3 +44,4 @@ Simple react-relate demos:
 - react-router
 - zustand
 - module scss
+- useTransition, useActionState, useFormStatus and useOptimistic

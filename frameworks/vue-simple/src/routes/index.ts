@@ -11,4 +11,9 @@ export const routes: RouteRecordRaw[] = [
     path: '/pinia',
     component: () => import('@/demos/Pinia.vue'),
   },
+  {
+    name: 'MassRender',
+    path: '/mass-render',
+    component: () => import('@/demos/MassRender.vue'),
+  },
 ];
