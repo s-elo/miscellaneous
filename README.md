@@ -13,3 +13,15 @@ However, it can be quite a hassle to find a place to try them, especially when I
 Of course, I can create repos for each of the demo, but that would propably end up being so many repos and it could be hard to find when I want to refer to one of them.
 
 What's more, it can provide me a sense of collection, which makes me easy to just start to try the new thing I find out.
+
+## Dev
+
+```bash
+$ pnpm dev [ProjectName]
+```
+
+## Run Task
+
+```bash
+$ pnpm start [Command] [ProjectName]
+```
