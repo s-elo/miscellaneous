@@ -25,3 +25,13 @@ $ pnpm dev [ProjectName]
 ```bash
 $ pnpm start [Command] [ProjectName]
 ```
+
+## List
+
+### vue-simple
+
+Simple vue-related demos:
+
+- vue-router
+- pinia
+- scss
