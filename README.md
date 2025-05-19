@@ -35,3 +35,11 @@ Simple vue-related demos:
 - vue-router
 - pinia
 - scss
+
+### react-simple
+
+Simple react-relate demos:
+
+- react-router
+- zustand
+- scss
