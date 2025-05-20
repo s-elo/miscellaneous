@@ -4,6 +4,7 @@ import { ZustandDemo } from "@/demos/Zustand";
 import { UseActionStateDemo } from "@/demos/UseActionState";
 import { UseFormStatusDemo } from "@/demos/UseFormStatus";
 import { UseOptimisticDemo } from "@/demos/UseOptimistic";
+import { UseDemo } from "@/demos/Use";
 
 export const routes = [
   {
@@ -35,5 +36,10 @@ export const routes = [
     name: 'UseOptimistic',
     path: '/use-optimistic',
     Component: UseOptimisticDemo
+  },
+  {
+    name: 'Use',
+    path: '/use',
+    Component: UseDemo
   }
 ]
