@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm start dev",
+    "exec": "cd ./node-basic && pnpm run exec",
     "start": "node ./scripts/run.js"
   },
   "devDependencies": {
@@ -18,7 +19,7 @@
     "simple-git": "^3.19.1",
     "simple-git-hooks": "^2.9.0",
     "turbo": "^2.5.3",
-    "typescript": "^5.2.2"
+    "typescript": "^5.8.3"
   },
   "author": "s-elo",
   "license": "ISC"

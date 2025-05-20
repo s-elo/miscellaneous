@@ -14,16 +14,19 @@ Of course, I can create repos for each of the demo, but that would propably end 
 
 What's more, it can provide me a sense of collection, which makes me easy to just start to try the new thing I find out.
 
-## Dev
-
-```bash
-$ pnpm dev [ProjectName]
-```
-
 ## Run Task
 
 ```bash
 $ pnpm start [Command] [ProjectName]
+```
+
+## Dev
+
+```bash
+$ pnpm dev [ProjectName]
+
+# or
+$ pnpm start dev [ProjectName]
 ```
 
 ## List
@@ -53,3 +56,15 @@ Simple react-relate demos:
 - zustand
 - module scss
 - useTransition, useActionState, useFormStatus and useOptimistic
+
+### node-basic
+
+Execute node demos
+
+```bash
+$ pnpm exec [demoName]
+
+# e.g. pnpm exec event-loop
+```
+
+- event-loop
