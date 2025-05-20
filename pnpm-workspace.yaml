@@ -3,6 +3,7 @@ packages:
   - 'tools/**'
   - 'frameworks/**'
   - 'node-basic/**'
+  - 'shared/**'
   # exclude packages that are inside test directories
   # - '!**/test/**'
   # - '!entries/dist/**'

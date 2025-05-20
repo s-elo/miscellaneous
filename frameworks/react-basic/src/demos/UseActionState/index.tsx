@@ -1,8 +1,8 @@
 import { useState, useMemo, memo, useActionState } from "react"
-import { mock } from "@/utils/mock"
+import { mockRequest } from "@s-elo/shared"
 import "./index.scss"
 
-const updateName = mock({ code: 0, res: {}, message: 'success' }, 500)
+const updateName = mockRequest({ code: 0, res: {}, message: 'success' }, 500)
 
 const List = memo(({ list }: { list: string[] }) => {
   return (

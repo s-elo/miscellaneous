@@ -1,9 +1,9 @@
 import { useState } from "react"
-import { mock } from "@/utils/mock"
+import { mockRequest } from "@s-elo/shared"
 import "./index.scss"
 import { useFormStatus } from "react-dom"
 
-const updateName = mock({ code: 0, res: {}, message: 'success' }, 1000)
+const updateName = mockRequest({ code: 0, res: {}, message: 'success' }, 1000)
 
 const SubmitButton = () => {
   const { pending, data, method, action } = useFormStatus()

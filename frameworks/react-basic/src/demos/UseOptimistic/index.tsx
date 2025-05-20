@@ -1,8 +1,8 @@
 import { useState, useOptimistic, useTransition, useRef } from "react"
-import { mock } from "@/utils/mock"
+import { mockRequest } from "@s-elo/shared"
 import "./index.scss"
 
-const sentMessage = mock({ code: 0, res: {}, message: 'success' }, 1000)
+const sentMessage = mockRequest({ code: 0, res: {}, message: 'success' }, 1000)
 
 /**
  * After the form action transition, the optimistic name will be sync with the name automatically.

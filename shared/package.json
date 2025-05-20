@@ -1,0 +1,10 @@
+{
+  "name": "@s-elo/shared",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src",
+  "module": "src",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

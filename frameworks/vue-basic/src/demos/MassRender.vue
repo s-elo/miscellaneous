@@ -16,10 +16,10 @@
 </template>
 
 <script setup lang="ts">
-import { mock } from '@/utils/mock';
+import { mockRequest } from '@s-elo/shared';
 import { ref, nextTick } from 'vue';
 
-const updateName = mock({}, 1000)
+const updateName = mockRequest({}, 1000)
 
 const name = ref('')
 const list = ref<string[]>([])
