@@ -28,7 +28,11 @@ $ pnpm start [Command] [ProjectName]
 
 ## List
 
-### vue-simple
+### vue-basic
+
+```bash
+$ pnpm dev vue-basic
+```
 
 Simple vue-related demos:
 
@@ -37,7 +41,11 @@ Simple vue-related demos:
 - scss
 - massRender(compare with react's useTransition)
 
-### react-simple
+### react-basic
+
+```bash
+$ pnpm dev react-basic
+```
 
 Simple react-relate demos:
 

@@ -42,7 +42,7 @@ importers:
         specifier: ^5.2.2
         version: 5.8.3
 
-  frameworks/react-simple:
+  frameworks/react-basic:
     dependencies:
       react:
         specifier: ^19.1.0
@@ -94,7 +94,7 @@ importers:
         specifier: ^6.3.5
         version: 6.3.5(sass@1.89.0)
 
-  frameworks/vue-simple:
+  frameworks/vue-basic:
     dependencies:
       pinia:
         specifier: ^3.0.2
@@ -1517,7 +1517,7 @@ packages:
       '@vue/compiler-vue2': 2.7.16
       '@vue/shared': 3.5.14
       alien-signals: 1.0.13
-      minimatch: 9.0.3
+      minimatch: 9.0.5
       muggle-string: 0.4.1
       path-browserify: 1.0.1
       typescript: 5.8.3
