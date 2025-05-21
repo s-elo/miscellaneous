@@ -1,0 +1,32 @@
+{
+  "name": "apollo-graphql",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"tsx watch --include ./src/server/schemas/**/*.gql ./src/server/index.ts\" \"pnpm generate --watch\"",
+    "generate": "graphql-codegen --config ./src/server/codegen.yml"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.6",
+    "@graphql-codegen/typescript": "^4.1.6",
+    "@graphql-codegen/typescript-resolvers": "^4.5.1",
+    "@types/koa": "^2.15.0",
+    "@types/koa-bodyparser": "^4.3.12",
+    "@types/koa__cors": "^5.0.0",
+    "@types/node": "^22.15.19",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.4"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.12.1",
+    "@as-integrations/koa": "^1.1.1",
+    "@koa/cors": "^5.0.0",
+    "graphql": "^16.11.0",
+    "koa": "^3.0.0",
+    "koa-bodyparser": "^4.4.1"
+  }
+}
