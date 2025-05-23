@@ -9,6 +9,7 @@ import { resolvers } from './resolvers';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import router from './routes';
 global.__filename = fileURLToPath(import.meta.url);
 global.__dirname = path.dirname(__filename);
 
@@ -32,6 +33,7 @@ await server.start();
 
 app.use(cors());
 app.use(bodyParser());
+app.use(router.routes());
 app.use(
   koaMiddleware(server, {
     context: async ({ ctx }) => ({ token: ctx.headers.token }),
