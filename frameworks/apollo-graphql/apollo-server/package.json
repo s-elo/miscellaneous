@@ -1,11 +1,11 @@
 {
-  "name": "apollo-graphql",
+  "name": "apollo-server",
   "version": "1.0.0",
   "description": "",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"tsx watch --include ./src/server/schemas/**/*.gql ./src/server/index.ts\" \"pnpm generate --watch\"",
-    "generate": "graphql-codegen --config ./src/server/codegen.yml"
+    "dev": "concurrently \"tsx watch --include ./schemas/**/*.gql ./index.ts\" \"pnpm generate --watch\"",
+    "generate": "graphql-codegen --config ./codegen.yml"
   },
   "keywords": [],
   "author": "",

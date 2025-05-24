@@ -72,3 +72,17 @@ $ pnpm exec [demoName]
 ### apollo-graphql
 
 GraphQl framework for server and client side
+
+### apollo-server
+
+```bash
+$ pnpm dev apollo-server
+```
+
+### apollo-react
+
+need to firstly start the `apollo-server`
+
+```bash
+$ pnpm dev apollo-react
+```
