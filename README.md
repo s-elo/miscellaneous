@@ -14,6 +14,23 @@ Of course, I can create repos for each of the demo, but that would propably end 
 
 What's more, it can provide me a sense of collection, which makes me easy to just start to try the new thing I find out.
 
+## Content
+
+- [Miscellaneous](#miscellaneous)
+  - [What is it](#what-is-it)
+  - [Why](#why)
+  - [Content](#content)
+  - [Run Task](#run-task)
+  - [Dev](#dev)
+  - [List](#list)
+    - [vue-basic](#vue-basic)
+    - [react-basic](#react-basic)
+    - [node-basic](#node-basic)
+    - [apollo-graphql](#apollo-graphql)
+      - [apollo-server](#apollo-server)
+      - [apollo-react](#apollo-react)
+    - [leet-code](#leet-code)
+
 ## Run Task
 
 ```bash
@@ -73,16 +90,20 @@ $ pnpm exec [demoName]
 
 GraphQl framework for server and client side
 
-### apollo-server
+#### apollo-server
 
 ```bash
 $ pnpm dev apollo-server
 ```
 
-### apollo-react
+#### apollo-react
 
 need to firstly start the `apollo-server`
 
 ```bash
 $ pnpm dev apollo-react
 ```
+
+### leet-code
+
+[refer to here](./leet-code/README.md)

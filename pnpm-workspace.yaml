@@ -4,6 +4,7 @@ packages:
   - 'frameworks/**'
   - 'node-basic/**'
   - 'shared/**'
+  - 'leet-code/**'
   # exclude packages that are inside test directories
   # - '!**/test/**'
   # - '!entries/dist/**'
