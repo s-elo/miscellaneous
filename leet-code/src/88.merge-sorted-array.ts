@@ -16,7 +16,7 @@ function merge(nums1: number[], m: number, nums2: number[], n: number): void {
   solution2(nums1, m, nums2, n);
 }
 
-function solution2(
+export function solution2(
   nums1: number[],
   m: number,
   nums2: number[],
@@ -39,7 +39,7 @@ function solution2(
   }
 }
 
-function solution1(
+export function solution1(
   nums1: number[],
   m: number,
   nums2: number[],
