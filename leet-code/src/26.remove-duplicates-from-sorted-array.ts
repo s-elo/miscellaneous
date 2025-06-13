@@ -9,7 +9,27 @@ removeDuplicates([0, 0, 1, 1, 1, 2, 2, 3, 3, 4]);
 // @lc code=start
 function removeDuplicates(nums: number[]): number {
   // return solution1(nums);
-  return solution2(nums);
+  // return solution2(nums);
+  return solution3(nums);
+}
+
+/** this will be more aligned with [80] Remove Duplicates from Sorted Array II */
+export function solution3(nums: number[]): number {
+  if (nums.length <= 1) {
+    return nums.length;
+  }
+
+  let k = 1;
+
+  for (let i = 1; i < nums.length; i++) {
+    // skip the same values
+    if (nums[i] !== nums[i - 1]) {
+      nums[k] = nums[i];
+      k++;
+    }
+  }
+
+  return k;
 }
 
 // Space complexity: O(1)
