@@ -35,15 +35,15 @@ export function solution2(nums: number[], k: number) {
   reverse(nums, k, nums.length - 1);
 }
 
-/** SPACE: O(1), TIME: O(2kn) */
+/** SPACE: O(1), TIME: O(kn) */
 export function solution1(nums: number[], k: number) {
   while (k) {
-    // here takes O(n) time
+    // here takes O(1) time
     const last = nums.pop();
     if (last === undefined) {
       return;
     }
-    // here takes another O(n) time
+    // here takes O(n) time
     nums.unshift(last);
     k--;
   }
