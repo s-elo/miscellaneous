@@ -1,14 +1,14 @@
-import { Bench } from 'tinybench';
+// import { Bench } from 'tinybench';
 import { createHash } from 'crypto';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 import { plus100, hashFile, fibonacci } from '../index.js';
 
 function add(a: number) {
   return a + 100;
 }
 
-function calculateFileHashJS(filePath: string) {
-  const data = readFileSync(filePath);
+function calculateFileHashJS(filePath: string, isContent = false) {
+  const data = isContent ? filePath : readFileSync(filePath);
   return createHash('sha256').update(data).digest('hex');
 }
 
@@ -25,18 +25,17 @@ function fibonacciJs(n: number): number {
   return b;
 }
 
-const b = new Bench();
+const testFilePath = './__test__/test.txt';
 
-b.add('Native a + 100', () => {
-  plus100(10);
-});
+// const b = new Bench();
 
-b.add('JavaScript a + 100', () => {
-  add(10);
-});
+// b.add('Native a + 100', () => {
+//   plus100(10);
+// });
 
-// const testFilePath = './test.txt';
-// writeFileSync(testFilePath, Buffer.alloc(1024 * 1024 * 1));
+// b.add('JavaScript a + 100', () => {
+//   add(10);
+// });
 
 // b.add('Native hash file', () => {
 //   hashFile(testFilePath);
@@ -45,14 +44,44 @@ b.add('JavaScript a + 100', () => {
 //   calculateFileHashJS(testFilePath);
 // });
 
-b.add('Native fibonacci', () => {
-  fibonacci(10);
-});
+// b.add('Native fibonacci', () => {
+//   fibonacci(10);
+// });
 
-b.add('JavaScript fibonacci', () => {
-  fibonacciJs(10);
-});
+// b.add('JavaScript fibonacci', () => {
+//   fibonacciJs(10);
+// });
 
-await b.run();
+// await b.run();
 
-console.table(b.table());
+// console.table(b.table());
+
+// eslint-disable-next-line @typescript-eslint/ban-types
+async function runTask(fn: Function, taskName = fn.name) {
+  const start = performance.now();
+  await fn();
+  const end = performance.now();
+  console.log(`${taskName} execution time: ${(end - start).toFixed(2)} ms`);
+}
+
+console.log('Running benchmarks...');
+await runTask(() => plus100(10), 'Native a + 100');
+await runTask(() => add(10), 'JavaScript a + 100');
+console.log(' ');
+await runTask(() => hashFile(testFilePath), 'Native hash file');
+await runTask(() => calculateFileHashJS(testFilePath), 'JavaScript hash file');
+console.log(' ');
+const testContent = readFileSync(testFilePath, 'utf-8');
+const stringContent = testContent.repeat(10000); // Repeat to increase size
+// The hash process is not slow, but the finished time is way slower than js?
+await runTask(
+  () => hashFile(stringContent, true),
+  'Native hash file without io',
+);
+await runTask(
+  () => calculateFileHashJS(stringContent, true),
+  'JavaScript hash file without io',
+);
+console.log(' ');
+await runTask(() => fibonacci(10000), 'Native Fibonacci');
+await runTask(() => fibonacciJs(10000), 'JavaScript Fibonacci');

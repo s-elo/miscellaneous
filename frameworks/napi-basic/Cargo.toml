@@ -9,6 +9,7 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
+hex-literal = "1.0.0"
 napi        = "2"
 napi-derive = "2"
 sha2 = "0.10.9"

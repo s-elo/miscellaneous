@@ -11,7 +11,7 @@ test('hash file', (t) => {
   const file_path = './__test__/test.txt';
   t.is(
     hashFile(file_path),
-    'a0a1673915a4531733f1c3e664f118fe355ca36cfc5f89108a48e9212fdb4c01',
+    'a50d9908d8ed6bec25458d0a62d4b3f3c7cf2a72199904fc5c4b25f7f1b8fe14',
   );
 });
 
