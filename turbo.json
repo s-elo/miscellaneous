@@ -5,6 +5,8 @@
     "dev": {
       "cache": false,
       "persistent": true
-    }
+    },
+    "bench": {},
+    "build": {}
   }
 }
