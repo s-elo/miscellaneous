@@ -9,7 +9,76 @@ trap([0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]); // Output: 6
 
 // @lc code=start
 function trap(height: number[]): number {
-  return solution1(height);
+  // return solution1(height);
+  // return solution2(height);
+  return solution3(height);
+}
+
+/**
+ * SPACE: O(1), TIME: O(n)
+ * - Two pointers, left and right, moving towards the center.
+ * - Maintain the maximum heights seen from both sides.
+ * - Calculate the water trapped at each step based on the minimum of the two maximum heights.
+ */
+export function solution3(height: number[]) {
+  let water = 0;
+  let left = 0;
+  let right = height.length - 1;
+  let leftMax = 0;
+  let rightMax = 0;
+
+  while (left < right) {
+    if (height[left] < height[right]) {
+      if (height[left] < leftMax) {
+        water += leftMax - height[left];
+      } else {
+        leftMax = height[left];
+      }
+
+      left++;
+    } else {
+      if (height[right] < rightMax) {
+        water += rightMax - height[right];
+      } else {
+        rightMax = height[right];
+      }
+
+      right--;
+    }
+  }
+
+  return water;
+}
+
+/** SPACE: O(2n), TIME: O(3n) */
+export function solution2(height: number[]) {
+  const leftMax: number[] = [];
+  let max = 0;
+  for (let i = 0; i < height.length; i++) {
+    leftMax[i] = max;
+    if (height[i] > max) {
+      max = height[i];
+    }
+  }
+
+  const rightMax: number[] = [];
+  max = 0;
+  for (let i = height.length - 1; i >= 0; i--) {
+    rightMax[i] = max;
+    if (height[i] > max) {
+      max = height[i];
+    }
+  }
+
+  let water = 0;
+  for (let i = 0; i < height.length; i++) {
+    const borderHeight = Math.min(leftMax[i], rightMax[i]);
+    if (borderHeight > height[i]) {
+      water += borderHeight - height[i];
+    }
+  }
+
+  return water;
 }
 
 export function solution1(height: number[]) {
