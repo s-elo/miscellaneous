@@ -30,6 +30,7 @@ What's more, it can provide me a sense of collection, which makes me easy to jus
       - [apollo-server](#apollo-server)
       - [apollo-react](#apollo-react)
     - [leet-code](#leet-code)
+    - [mcp-miscelaneous](#mcp-miscelaneous)
 
 ## Run Task
 
@@ -106,4 +107,8 @@ $ pnpm dev apollo-react
 
 ### leet-code
 
-[refer to here](./leet-code/README.md)
+[refer to here](./leet-code)
+
+### mcp-miscelaneous
+
+[refer to here](./frameworks/mcp)
