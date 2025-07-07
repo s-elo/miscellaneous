@@ -1,0 +1,25 @@
+{
+    "name": "swc-plugin",
+    "version": "0.1.0",
+    "description": "",
+    "author": "",
+    "license": "ISC",
+    "keywords": [
+        "swc-plugin"
+    ],
+    "main": "target/wasm32-wasip1/release/swc_plugin.wasm",
+    "scripts": {
+        "test": "pnpm build && tsx test/index.ts",
+        "test:pkg": "cargo test",
+        "build": "cargo build-wasip1 --release",
+        "prepublishOnly": "pnpm build"
+    },
+    "files": [],
+    "preferUnplugged": true,
+    "dependencies": {
+        "@swc/core": "^1.12.9"
+    },
+    "devDependencies": {
+        "tsx": "^4.20.3"
+    }
+}

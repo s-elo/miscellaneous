@@ -29,8 +29,10 @@ What's more, it can provide me a sense of collection, which makes me easy to jus
     - [apollo-graphql](#apollo-graphql)
       - [apollo-server](#apollo-server)
       - [apollo-react](#apollo-react)
+    - [napi-basic](#napi-basic)
     - [leet-code](#leet-code)
     - [mcp-miscelaneous](#mcp-miscelaneous)
+    - [swc-plugin](#swc-plugin)
 
 ## Run Task
 
@@ -105,6 +107,10 @@ need to firstly start the `apollo-server`
 $ pnpm dev apollo-react
 ```
 
+### napi-basic
+
+[refer to here](./frameworks/napi-basic)
+
 ### leet-code
 
 [refer to here](./leet-code)
@@ -112,3 +118,7 @@ $ pnpm dev apollo-react
 ### mcp-miscelaneous
 
 [refer to here](./frameworks/mcp)
+
+### swc-plugin
+
+[refer to here](./tools/swc-plugin)
