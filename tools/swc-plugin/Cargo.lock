@@ -1361,6 +1361,7 @@ dependencies = [
  "serde",
  "serde_json",
  "swc_core",
+ "swc_ecma_quote",
 ]
 
 [[package]]
@@ -1538,6 +1539,35 @@ dependencies = [
  "swc_ecma_ast",
  "swc_ecma_lexer",
  "tracing",
+]
+
+[[package]]
+name = "swc_ecma_quote"
+version = "18.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5e5a539d953d73c9ed51519d0ce0ed94c684eb7eb1580f5435c0394c9021aed"
+dependencies = [
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_quote_macros",
+]
+
+[[package]]
+name = "swc_ecma_quote_macros"
+version = "18.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc928ab705ab90e70ad1dcc1b7684a296ee96c0e7d1a4bd1507b048f04a6049d"
+dependencies = [
+ "anyhow",
+ "proc-macro2",
+ "quote",
+ "rustc-hash",
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_parser",
+ "swc_macros_common",
+ "syn",
 ]
 
 [[package]]
