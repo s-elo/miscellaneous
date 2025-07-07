@@ -7,7 +7,7 @@ run/
 log/
 .DS_Store
 # .vscode
-*.lock
+# *.lock
 *.swp
 
 dist
