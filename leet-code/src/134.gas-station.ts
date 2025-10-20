@@ -13,6 +13,7 @@ canCompleteCircuit([1, 2, 3, 4, 5], [3, 4, 5, 1, 2]);
  * - start from the i station, keep tracking the current gas,
  * if at j station, the current gas is not enough to reach the next station,
  * then it means we cannot start from any station between i and j,
+ * like if starts from i can not reach to j + 1, then i + 1 or i + 2 also can not.
  * so we can set the next start station to j + 1
  */
 function canCompleteCircuit(gas: number[], cost: number[]): number {
