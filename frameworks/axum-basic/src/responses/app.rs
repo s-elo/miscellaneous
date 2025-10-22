@@ -17,12 +17,38 @@ use crate::time_lib;
 #[from_request(via(axum::Json), rejection(AppError))]
 pub struct AppJson<T>(pub T);
 
-impl<T> IntoResponse for AppJson<T>
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct ApiRes<T> {
+  data: Option<T>,
+  code: u8,
+  message: Option<T>,
+}
+
+impl<T> ApiRes<T> {
+  pub fn success(data: T) -> Self {
+    Self {
+      data: Some(data),
+      code: 0,
+      message: None,
+    }
+  }
+
+  pub fn error(message: T) -> Self {
+    Self {
+      data: None,
+      code: 0,
+      message: Some(message),
+    }
+  }
+}
+
+impl<T> IntoResponse for ApiRes<T>
 where
-  axum::Json<T>: IntoResponse,
+  axum::Json<ApiRes<T>>: IntoResponse,
 {
   fn into_response(self) -> Response {
-    axum::Json(self.0).into_response()
+    // wrap code feild
+    axum::Json(self).into_response()
   }
 }
 
@@ -33,17 +59,12 @@ pub enum AppError {
   JsonRejection(JsonRejection),
   // Some error from a third party library we're using
   TimeError(time_lib::Error),
+  Unknown(anyhow::Error),
 }
 
 // Tell axum how `AppError` should be converted into a response.
 impl IntoResponse for AppError {
   fn into_response(self) -> Response {
-    // How we want errors responses to be serialized
-    #[derive(Serialize)]
-    struct ErrorResponse {
-      message: String,
-    }
-
     let (status, message, err) = match &self {
       AppError::JsonRejection(rejection) => {
         // This error is caused by bad user input so don't log it
@@ -60,14 +81,20 @@ impl IntoResponse for AppError {
           Some(self),
         )
       }
+      AppError::Unknown(err) => (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        err.to_string(),
+        Some(self),
+      ),
     };
 
-    let mut response = (status, AppJson(ErrorResponse { message })).into_response();
+    let mut response = (status, ApiRes::error(message)).into_response();
     if let Some(err) = err {
       // Insert our error into the response, our logging middleware will use this.
       // By wrapping the error in an Arc we can use it as an Extension regardless of any inner types not deriving Clone.
       response.extensions_mut().insert(Arc::new(err));
     }
+
     response
   }
 }
@@ -81,5 +108,14 @@ impl From<JsonRejection> for AppError {
 impl From<time_lib::Error> for AppError {
   fn from(error: time_lib::Error) -> Self {
     Self::TimeError(error)
+  }
+}
+
+// This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
+// `Result<_, AppError>`. That way you don't need to do that manually.
+// see the get_all_users_handler and get_all_users service
+impl From<anyhow::Error> for AppError {
+  fn from(error: anyhow::Error) -> Self {
+    Self::Unknown(error)
   }
 }

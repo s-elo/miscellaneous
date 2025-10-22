@@ -24,3 +24,14 @@ pub fn create_user(state: &AppState, name: String) -> Result<User, AppError> {
     created_at,
   })
 }
+
+pub async fn get_all_users(state: &AppState) -> Result<Vec<User>, anyhow::Error> {
+  let users = state.users.lock().unwrap().values().cloned().collect();
+
+  // change the file name to test error
+  let file_content = tokio::fs::read_to_string("test.txt").await?;
+
+  println!("file_content: {}", file_content);
+
+  Ok(users)
+}
