@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 use crate::{
   responses::app::{ApiRes, AppError, AppJson},
-  services::user::{User, create_user, get_all_users},
+  services::user::User,
   state::app::AppState,
 };
 
@@ -18,9 +18,7 @@ pub async fn create_user_handler(
   // matches our application
   AppJson(params): AppJson<UserParams>,
 ) -> Result<ApiRes<User>, AppError> {
-  let user = create_user(&state, params.name)?;
-
-  state.users.lock().unwrap().insert(user.id, user.clone());
+  let user = state.services.user_service.create_user(params.name)?;
 
   Ok(ApiRes::success(user))
 }
@@ -28,7 +26,7 @@ pub async fn create_user_handler(
 pub async fn get_all_users_handler(
   State(state): State<AppState>,
 ) -> Result<ApiRes<Vec<User>>, AppError> {
-  let users = get_all_users(&state).await?;
+  let users = state.services.user_service.get_all_users().await?;
 
   Ok(ApiRes::success(users))
 }

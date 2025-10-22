@@ -6,12 +6,16 @@ use axum::{
 };
 use tower_http::trace::TraceLayer;
 
-use crate::{middlewares::logs::log_app_errors, routes::user::user_routes};
+use crate::{
+  middlewares::logs::log_app_errors,
+  routes::user::user_routes,
+  state::app::{AppState, Services},
+};
 
 pub fn init_routes() -> IntoMakeService<Router> {
   let app = Router::new()
     // A dummy route that accepts some JSON but sometimes fails
-    .merge(user_routes())
+    .merge(user_routes().with_state(AppState::default()))
     .layer(
       TraceLayer::new_for_http()
         // Create our own span for the request and include the matched path. The matched

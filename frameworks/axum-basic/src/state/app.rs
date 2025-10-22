@@ -1,12 +1,11 @@
-use crate::services::user::User;
+use crate::services::user::UserService;
 
-use std::{
-  collections::HashMap,
-  sync::{Arc, Mutex, atomic::AtomicU64},
-};
+#[derive(Default, Clone)]
+pub struct Services {
+  pub user_service: UserService,
+}
 
 #[derive(Default, Clone)]
 pub struct AppState {
-  pub next_id: Arc<AtomicU64>,
-  pub users: Arc<Mutex<HashMap<u64, User>>>,
+  pub services: Services,
 }
