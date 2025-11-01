@@ -9,6 +9,17 @@ threeSum([-1, 0, 1, 2, -1, -4]);
 // -4, -1, -1, 0, 1, 2;
 
 // @lc code=start
+/**
+ * Two pointers approach:
+ * - Sort the array to make it easier to avoid duplicates and use two pointers.
+ * - Iterate through the array, fixing one number and using two pointers to find pairs that sum to the negative of the fixed number.
+ * - Move the left and right pointers based on the sum compared to zero, and skip duplicates to ensure unique triplets.
+ *
+ * e.i. for the array [-1, 0, 1, 2, -1, -4]:
+ * 1. Sort it to get [-4, -1, -1, 0, 1, 2].
+ * 2. Fix -4 (first occurrence) and use two pointers(left starts at -1 and right starts at 2) to find pairs that sum to 1.
+ * 3. Move to the next unique number and repeat the process.
+ */
 function threeSum(nums: number[]): number[][] {
   nums.sort((a, b) => a - b);
   const result: number[][] = [];
