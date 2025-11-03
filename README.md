@@ -33,6 +33,7 @@ What's more, it can provide me a sense of collection, which makes me easy to jus
     - [leet-code](#leet-code)
     - [mcp-miscelaneous](#mcp-miscelaneous)
     - [swc-plugin](#swc-plugin)
+    - [axum-basic](#axum-basic)
 
 ## Run Task
 
@@ -122,3 +123,7 @@ $ pnpm dev apollo-react
 ### swc-plugin
 
 [refer to here](./tools/swc-plugin)
+
+### axum-basic
+
+[refer to here](./frameworks/axum-basic)
