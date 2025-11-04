@@ -21,10 +21,10 @@ onMounted(() => {
   })
 
   rayTracer.value.render([
-    new Sphere(new Vec(0, -1, 3), 1, new Color(255, 0, 0)),
-    new Sphere(new Vec(-2, 0, 4), 1, new Color(0, 255, 0)),
-    new Sphere(new Vec(2, 0, 4), 1, new Color(0, 0, 255)),
-    new Sphere(new Vec(0, -5001, 0), 5000, new Color(255, 255, 0))
+    new Sphere(new Vec(0, -1, 3), 1, new Color(255, 0, 0)), // red
+    new Sphere(new Vec(-2, 0, 4), 1, new Color(0, 255, 0)), // green
+    new Sphere(new Vec(2, 0, 4), 1, new Color(0, 0, 255)), // blue
+    new Sphere(new Vec(0, -5001, 0), 5000, new Color(255, 255, 0)) // yellow
   ])
 })
 </script>

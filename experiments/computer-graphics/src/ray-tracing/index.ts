@@ -1,6 +1,7 @@
 import { Vec, Color, Point, Sphere } from '../utils';
 
 export interface Scene {
+  /** the greater the viewport size is, the bigger the image is and the further the objects are  */
   viewportSize: number;
   /** z axis value of the viewport */
   projectionPlanZ: number;
@@ -58,7 +59,8 @@ export class RayTracer {
 
   /** trace the ray to find the final color that should be displayed on the canvas */
   protected _traceRay(spheres: Sphere[], canvasPoint: Point) {
-    const MIN_PARAM = 1;
+    // object behind the projection plane are not visible
+    const MIN_PARAM = this.scene.projectionPlanZ;
     const MAX_PARAM = Infinity;
 
     let closestT = Infinity;
