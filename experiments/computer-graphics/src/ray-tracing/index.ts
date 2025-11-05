@@ -1,4 +1,5 @@
 import { Vec, Color, Point, Sphere } from '../utils';
+import { LightType, Light } from './light';
 
 export interface Scene {
   /** the greater the viewport size is, the bigger the image is and the further the objects are  */
@@ -8,6 +9,7 @@ export interface Scene {
   backgroundColor: Color;
   /** position of the camera */
   camera: Vec;
+  lights: Light[];
 }
 
 export interface Options {
@@ -27,6 +29,11 @@ export class RayTracer {
     projectionPlanZ: 1,
     backgroundColor: new Color(255, 255, 255),
     camera: new Vec(0, 0, 0),
+    lights: [
+      new Light(LightType.AMBIENT, 0.2),
+      new Light(LightType.POINT, 0.6, new Vec(2, 1, 0)),
+      new Light(LightType.DIRECTIONAL, 0.2, new Vec(1, 4, 4)),
+    ],
   };
 
   constructor({ canvas, scene = {} }: Options) {
@@ -84,7 +91,25 @@ export class RayTracer {
       return this.scene.backgroundColor;
     }
 
-    return (closestSphere as Sphere).color;
+    const rayDirection = this._canvasToViewport(canvasPoint);
+    const intersectPoint = this.scene.camera.add(rayDirection.mul(closestT));
+    const surfaceNormal = intersectPoint
+      .sub((closestSphere as Sphere).center)
+      .nor();
+
+    const lightIntensity = this.scene.lights.reduce((acc, light) => {
+      return (
+        acc +
+        light.getIntensityAtPoint(
+          intersectPoint,
+          surfaceNormal,
+          rayDirection.mul(-1),
+          closestSphere?.specular,
+        )
+      );
+    }, 0);
+
+    return (closestSphere as Sphere).color.mul(lightIntensity);
   }
 
   /**
