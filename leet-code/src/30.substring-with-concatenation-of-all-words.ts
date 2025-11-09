@@ -9,7 +9,74 @@ findSubstring('barfoothefoobarman', ['foo', 'bar']);
 // @lc code=start
 
 function findSubstring(s: string, words: string[]): number[] {
-  return [];
+  const retIdx: number[] = [];
+  if (words.length === 0 || s.length === 0) {
+    return retIdx;
+  }
+
+  const wordLen = words[0].length;
+  const totalWordsLen = words.length;
+  if (s.length < wordLen * totalWordsLen) {
+    return retIdx;
+  }
+
+  const wordFreqMap = new Map<string, number>();
+  for (const word of words) {
+    wordFreqMap.set(word, (wordFreqMap.get(word) || 0) + 1);
+  }
+
+  // repeat for wordLen times to cover all the possible offsets
+  for (let offset = 0; offset < wordLen; offset++) {
+    let left = offset;
+    let curConcatWordLen = 0;
+    const curFeqMap = new Map<string, number>();
+    for (let right = offset; right <= s.length - wordLen; right += wordLen) {
+      const curWord = s.substring(right, right + wordLen);
+      curConcatWordLen++;
+
+      const wordFeq = wordFreqMap.get(curWord) || 0;
+      if (wordFeq) {
+        curFeqMap.set(curWord, (curFeqMap.get(curWord) || 0) + 1);
+
+        // shrink the window until the freq is valid
+        while ((curFeqMap.get(curWord) || 0) > wordFeq) {
+          const leftWord = s.substring(left, left + wordLen);
+          const wordFeq = curFeqMap.get(leftWord) || 0;
+          if (wordFeq) {
+            curFeqMap.set(leftWord, wordFeq - 1);
+          } else {
+            curFeqMap.delete(leftWord);
+          }
+
+          curConcatWordLen--;
+          left += wordLen;
+        }
+
+        // check if we found one valid concatenation
+        if (curConcatWordLen === totalWordsLen) {
+          retIdx.push(left);
+          // move left to the next word position
+          const leftWord = s.substring(left, left + wordLen);
+          const wordFeq = curFeqMap.get(leftWord) || 0;
+          if (wordFeq) {
+            curFeqMap.set(leftWord, wordFeq - 1);
+          } else {
+            curFeqMap.delete(leftWord);
+          }
+
+          left += wordLen;
+          curConcatWordLen--;
+        }
+      } else {
+        // reset the window
+        curFeqMap.clear();
+        left = right + wordLen;
+        curConcatWordLen = 0;
+      }
+    }
+  }
+
+  return retIdx;
 }
 
 // not work currently for like aaaaaaaaaaaaaa with words [aa, aa, aa]
