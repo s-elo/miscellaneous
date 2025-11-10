@@ -18,14 +18,18 @@ onMounted(() => {
 
   rayTracer.value = new RayTracer({
     canvas: canvasRef.value,
+    scene: {
+      backgroundColor: new Color(0, 0, 0),
+      spheres: [
+        new Sphere(new Vec(0, -1, 3), 1, new Color(255, 0, 0), 500, 0.2), // red
+        new Sphere(new Vec(-2, 0, 4), 1, new Color(0, 255, 0), 10, 0.4), // green
+        new Sphere(new Vec(2, 0, 4), 1, new Color(0, 0, 255), 500, 0.3), // blue
+        new Sphere(new Vec(0, -5001, 0), 5000, new Color(255, 255, 0), 1000, 0.5) // yellow
+      ]
+    }
   })
 
-  rayTracer.value.render([
-    new Sphere(new Vec(0, -1, 3), 1, new Color(255, 0, 0), 500), // red
-    new Sphere(new Vec(-2, 0, 4), 1, new Color(0, 255, 0), 10), // green
-    new Sphere(new Vec(2, 0, 4), 1, new Color(0, 0, 255), 500), // blue
-    new Sphere(new Vec(0, -5001, 0), 5000, new Color(255, 255, 0), 1000) // yellow
-  ])
+  rayTracer.value.render()
 })
 </script>
 

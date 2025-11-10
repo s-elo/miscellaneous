@@ -1,4 +1,10 @@
-import type { Vec } from '../utils';
+import { EPSILON } from '../constants';
+import {
+  getClosestIntersectedParams,
+  getReflectionDirection,
+  Sphere,
+  type Vec,
+} from '../utils';
 
 export enum LightType {
   POINT,
@@ -25,6 +31,7 @@ export class Light {
     point: Vec,
     surfaceNor: Vec,
     pointToCamera: Vec,
+    spheres: Sphere[],
     specular = -1,
   ) {
     if (this.type === LightType.AMBIENT) {
@@ -42,9 +49,19 @@ export class Light {
         ? this.positionOrDirection.sub(point)
         : this.positionOrDirection;
 
-    const reflection = surfaceNor
-      .mul(2 * surfaceNor.dot(lightDirection))
-      .sub(lightDirection);
+    // check shadow
+    const { closestSphere } = getClosestIntersectedParams(
+      point,
+      lightDirection,
+      spheres,
+      EPSILON,
+      Infinity,
+    );
+    if (closestSphere) {
+      return 0;
+    }
+
+    const reflection = getReflectionDirection(lightDirection, surfaceNor);
     const reflectionDotPointToCamera = reflection.dot(pointToCamera);
     const specularIntensity =
       specular != -1 && reflectionDotPointToCamera > 0

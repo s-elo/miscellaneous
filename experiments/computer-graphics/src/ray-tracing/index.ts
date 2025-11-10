@@ -1,4 +1,12 @@
-import { Vec, Color, Point, Sphere } from '../utils';
+import { EPSILON } from '../constants';
+import {
+  Vec,
+  Color,
+  Point,
+  Sphere,
+  getClosestIntersectedParams,
+  getReflectionDirection,
+} from '../utils';
 import { LightType, Light } from './light';
 
 export interface Scene {
@@ -10,6 +18,7 @@ export interface Scene {
   /** position of the camera */
   camera: Vec;
   lights: Light[];
+  spheres: Sphere[];
 }
 
 export interface Options {
@@ -29,6 +38,7 @@ export class RayTracer {
     projectionPlanZ: 1,
     backgroundColor: new Color(255, 255, 255),
     camera: new Vec(0, 0, 0),
+    spheres: [],
     lights: [
       new Light(LightType.AMBIENT, 0.2),
       new Light(LightType.POINT, 0.6, new Vec(2, 1, 0)),
@@ -51,12 +61,21 @@ export class RayTracer {
     };
   }
 
-  render(spheres: Sphere[]) {
+  render(reflectiveDepth = 3) {
     // the origin is in the center of the canvas
     for (let x = -this.canvas.width / 2; x < this.canvas.width / 2; x++) {
       for (let y = -this.canvas.height / 2; y < this.canvas.height / 2; y++) {
         const canvasPoint = new Point(x, y);
-        const color = this._traceRay(spheres, canvasPoint);
+        const rayDirection = this._canvasToViewport(canvasPoint);
+
+        const color = this._traceRay(
+          this.scene.camera,
+          rayDirection,
+          // object behind the projection plane are not visible
+          this.scene.projectionPlanZ,
+          Infinity,
+          reflectiveDepth,
+        );
         this._putPixel(canvasPoint, color);
       }
     }
@@ -65,37 +84,28 @@ export class RayTracer {
   }
 
   /** trace the ray to find the final color that should be displayed on the canvas */
-  protected _traceRay(spheres: Sphere[], canvasPoint: Point) {
-    // object behind the projection plane are not visible
-    const MIN_PARAM = this.scene.projectionPlanZ;
-    const MAX_PARAM = Infinity;
+  protected _traceRay(
+    origin: Vec,
+    rayDirection: Vec,
+    tMin: number,
+    tMax: number,
+    recursionDepth = 0,
+  ): Color {
+    const spheres = this.scene.spheres;
 
-    let closestT = Infinity;
-    let closestSphere: Sphere | null = null;
-
-    for (const sphere of spheres) {
-      const intersectParams = this._getIntersectRaySphereParams(
-        sphere,
-        canvasPoint,
-      );
-
-      intersectParams.forEach((t) => {
-        if (t > MIN_PARAM && t < MAX_PARAM && t < closestT) {
-          closestT = t;
-          closestSphere = sphere;
-        }
-      });
-    }
-
+    const { closestT, closestSphere } = getClosestIntersectedParams(
+      origin,
+      rayDirection,
+      spheres,
+      tMin,
+      tMax,
+    );
     if (closestSphere === null) {
       return this.scene.backgroundColor;
     }
 
-    const rayDirection = this._canvasToViewport(canvasPoint);
-    const intersectPoint = this.scene.camera.add(rayDirection.mul(closestT));
-    const surfaceNormal = intersectPoint
-      .sub((closestSphere as Sphere).center)
-      .nor();
+    const intersectPoint = origin.add(rayDirection.mul(closestT));
+    const surfaceNormal = intersectPoint.sub(closestSphere.center).nor();
 
     const lightIntensity = this.scene.lights.reduce((acc, light) => {
       return (
@@ -104,42 +114,35 @@ export class RayTracer {
           intersectPoint,
           surfaceNormal,
           rayDirection.mul(-1),
-          closestSphere?.specular,
+          spheres,
+          closestSphere.specular,
         )
       );
     }, 0);
 
-    return (closestSphere as Sphere).color.mul(lightIntensity);
-  }
+    const localColor = closestSphere.color.mul(lightIntensity);
 
-  /**
-   * Resolve the equations to get the intersected t params
-   * - <P-C, P-C> = r^2
-   * - P = O + t<V - O>
-   * - where O is the camera, V is the viewport point, C is the sphere center, r is the sphere radius.
-   *
-   * The bigger t is, the greater distance of the sphere is
-   */
-  protected _getIntersectRaySphereParams(
-    sphere: Sphere,
-    canvasPoint: Point,
-  ): [number, number] {
-    const OC = this.scene.camera.sub(sphere.center);
-    const rayDirection = this._canvasToViewport(canvasPoint);
-
-    const a = rayDirection.dot(rayDirection);
-    const b = 2 * OC.dot(rayDirection);
-    const c = OC.dot(OC) - sphere.radius * sphere.radius;
-
-    const discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) {
-      return [Infinity, Infinity];
+    // no reflection
+    const shpereReflective = closestSphere.reflective;
+    if (recursionDepth <= 0 || shpereReflective <= 0) {
+      return localColor;
     }
 
-    const t1 = (-b + Math.sqrt(discriminant)) / (2 * a);
-    const t2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+    const reflectionDirection = getReflectionDirection(
+      rayDirection.mul(-1),
+      surfaceNormal,
+    );
+    const reflectionColor = this._traceRay(
+      intersectPoint,
+      reflectionDirection,
+      EPSILON,
+      Infinity,
+      recursionDepth - 1,
+    );
 
-    return [t1, t2];
+    const localProportion = localColor.mul(1 - shpereReflective);
+    const reflectionProportion = reflectionColor.mul(shpereReflective);
+    return localProportion.add(reflectionProportion);
   }
 
   /**
