@@ -1,11 +1,11 @@
 <template>
   <div class="container">
-    <RayTracer />
+    <RouterView />
   </div>
 </template>
 
 <script setup lang="ts">
-import RayTracer from './views/RayTracer.vue';
+import { RouterView } from 'vue-router';
 </script>
 
 <style scoped>

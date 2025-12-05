@@ -40,7 +40,10 @@ export class Color {
 
 /** 2D points in canvas */
 export class Point {
-  constructor(public x: number, public y: number) {}
+  constructor(public x: number, public y: number, public h: number = 1) {}
+  reverse() {
+    return new Point(this.y, this.x, this.h);
+  }
 }
 
 export class Sphere {
@@ -118,4 +121,60 @@ export function getReflectionDirection(rayDirection: Vec, surfaceNormal: Vec) {
   return surfaceNormal
     .mul(2 * surfaceNormal.dot(rayDirection))
     .sub(rayDirection);
+}
+
+export function transformOriginToTopLeft(
+  point: Point,
+  canvas: HTMLCanvasElement,
+) {
+  return new Point(
+    canvas.width / 2 + Math.floor(point.x),
+    canvas.height / 2 - Math.floor(point.y),
+  );
+}
+
+export function putPixel(
+  point: Point,
+  color: Color,
+  canvas: HTMLCanvasElement,
+  canvasBuffer: ImageData,
+) {
+  const { x, y } = transformOriginToTopLeft(point, canvas);
+
+  if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) {
+    throw new Error('Pixel out of bounds');
+  }
+
+  // https://developer.mozilla.org/en-US/docs/Web/API/ImageData/data
+  let offset = 4 * (x + canvasBuffer.width * y);
+  canvasBuffer.data[offset++] = color.r;
+  canvasBuffer.data[offset++] = color.g;
+  canvasBuffer.data[offset++] = color.b;
+  canvasBuffer.data[offset++] = 255; // Alpha = 255 (full opacity)
+}
+
+/**
+ * Interpolate the y values between two points;
+ * Make sure x1 > x0
+ */
+export function interpolate({ x: x0, y: y0 }: Point, { x: x1, y: y1 }: Point) {
+  if (x0 === x1) return [y0];
+
+  const values: number[] = [];
+  const slope = (y1 - y0) / (x1 - x0);
+
+  let y = y0;
+  for (let x = x0; x <= x1; x++) {
+    values.push(y);
+    y += slope;
+  }
+
+  return values;
+}
+
+export function swapPoints(p0: Point, p1: Point) {
+  const swap = p0;
+  p0 = p1;
+  p1 = swap;
+  return [p0, p1];
 }

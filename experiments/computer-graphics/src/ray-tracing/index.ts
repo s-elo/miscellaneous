@@ -6,6 +6,7 @@ import {
   Sphere,
   getClosestIntersectedParams,
   getReflectionDirection,
+  putPixel,
 } from '../utils';
 import { LightType, Light } from './light';
 
@@ -76,7 +77,7 @@ export class RayTracer {
           Infinity,
           reflectiveDepth,
         );
-        this._putPixel(canvasPoint, color);
+        putPixel(canvasPoint, color, this.canvas, this.cavasBuffer);
       }
     }
 
@@ -156,29 +157,5 @@ export class RayTracer {
       y * (this.scene.viewportSize / this.canvasCtx.canvas.height),
       this.scene.projectionPlanZ,
     );
-  }
-
-  protected _putPixel(point: Point, color: Color) {
-    const { x, y } = this._transformOriginToTopLeft(point);
-
-    if (x < 0 || x > this.canvas.width || y < 0 || y > this.canvas.height) {
-      throw new Error('Pixel out of bounds');
-    }
-
-    // https://developer.mozilla.org/en-US/docs/Web/API/ImageData/data
-    let offset = 4 * (x + this.cavasBuffer.width * y);
-    this.cavasBuffer.data[offset++] = color.r;
-    this.cavasBuffer.data[offset++] = color.g;
-    this.cavasBuffer.data[offset++] = color.b;
-    this.cavasBuffer.data[offset++] = 255; // Alpha = 255 (full opacity)
-  }
-
-  /**
-   * transform the origin from center to top-left
-   * Sx=Cw/2+Cx
-   * Sy=Ch/2−Cy
-   */
-  protected _transformOriginToTopLeft({ x, y }: Point) {
-    return new Point(this.canvas.width / 2 + x, this.canvas.height / 2 - y);
   }
 }
