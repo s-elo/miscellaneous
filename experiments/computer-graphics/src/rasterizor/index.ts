@@ -1,8 +1,20 @@
 import { Color, interpolate, Point, putPixel, swapPoints, Vec } from '../utils';
+import {
+  IdenticalMatrix4x4,
+  makeTranslationMatrix,
+  Mat4x4,
+  multiplyMM4,
+  multiplyMV,
+  transposed,
+  Vertex4,
+} from './helpers';
+import { Model, Triangle, Instance, Camera } from './entities';
 
 interface Scene {
   viewportSize: number;
   projectionPlanZ: number;
+  instances: Instance[];
+  camera: Camera;
 }
 
 export interface Options {
@@ -10,9 +22,11 @@ export interface Options {
   scene?: Partial<Scene>;
 }
 
-const getDefaultSecene = () => ({
+const getDefaultScene = () => ({
   viewportSize: 1,
   projectionPlanZ: 1,
+  instances: [],
+  camera: new Camera(new Vec(0, 0, 0), IdenticalMatrix4x4),
 });
 
 export class Rasterizor {
@@ -20,7 +34,7 @@ export class Rasterizor {
 
   canvasCtx: CanvasRenderingContext2D;
 
-  cavasBuffer: ImageData;
+  canvasBuffer: ImageData;
 
   scene: Scene;
 
@@ -32,16 +46,56 @@ export class Rasterizor {
 
     this.canvas = canvas;
     this.canvasCtx = ctx;
-    this.cavasBuffer = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    this.canvasBuffer = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
     this.scene = {
-      ...getDefaultSecene(),
+      ...getDefaultScene(),
       ...scene,
     };
   }
 
+  /** render one frame */
   render() {
-    this.canvasCtx.putImageData(this.cavasBuffer, 0, 0);
+    const { camera, instances } = this.scene;
+    // transform based on the camera position and orientation
+    const cameraMatrix = multiplyMM4(
+      transposed(camera.orientation),
+      makeTranslationMatrix(camera.position.mul(-1)),
+    );
+
+    instances.forEach((instance) => {
+      const transform = multiplyMM4(cameraMatrix, instance.transform);
+      this._renderModel(instance.model, transform);
+    });
+
+    this._updateScene();
+  }
+
+  protected _renderModel(model: Model, transform: Mat4x4) {
+    const projectedVertexes = model.vertices.reduce<Point[]>((ret, vertex) => {
+      /**
+       * transformed to a 4D point in homogenous coordinates
+       * the h value is 1 means it is a position point, 0 is a 4D vector
+       * */
+      const vertexH = new Vertex4(vertex.x, vertex.y, vertex.z, 1);
+      // project the vertex to 2D viewport
+      ret.push(this._projectVertex(multiplyMV(transform, vertexH)));
+      return ret;
+    }, []);
+
+    model.triangles.forEach((triangle) =>
+      this._renderTriangle(triangle, projectedVertexes),
+    );
+  }
+
+  /** render a triangle by the projected vertexes */
+  protected _renderTriangle(triangle: Triangle, projectedVertexes: Point[]) {
+    return this._drawWireframeTriangle(
+      projectedVertexes[triangle.v0],
+      projectedVertexes[triangle.v1],
+      projectedVertexes[triangle.v2],
+      triangle.color,
+    );
   }
 
   /**
@@ -57,7 +111,7 @@ export class Rasterizor {
    * - The h values come along with x valurs which compute the interpolation based on y values;
    * then compute the interpolation based on xLeft and xRight to get the horizontal segment values.
    */
-  drawShadedTriangle(p0: Point, p1: Point, p2: Point, color: Color) {
+  protected _drawShadedTriangle(p0: Point, p1: Point, p2: Point, color: Color) {
     // Sort the points so that y0 <= y1 <= y2
     if (p1.y < p0.y) {
       [p0, p1] = swapPoints(p0, p1);
@@ -111,19 +165,24 @@ export class Rasterizor {
 
       for (let x = xl; x <= xr; x++) {
         const h = hSegment[Math.floor(x - xl)];
-        putPixel(new Point(x, y), color.mul(h), this.canvas, this.cavasBuffer);
+        putPixel(new Point(x, y), color.mul(h), this.canvas, this.canvasBuffer);
       }
     }
   }
 
   /** should draw after drawFilledTriangle to cover the edges */
-  drawWireframeTriangle(p0: Point, p1: Point, p2: Point, color: Color) {
-    this.drawLine(p0, p1, color);
-    this.drawLine(p1, p2, color);
-    this.drawLine(p2, p0, color);
+  protected _drawWireframeTriangle(
+    p0: Point,
+    p1: Point,
+    p2: Point,
+    color: Color,
+  ) {
+    this._drawLine(p0, p1, color);
+    this._drawLine(p1, p2, color);
+    this._drawLine(p2, p0, color);
   }
 
-  drawLine(p0: Point, p1: Point, color: Color) {
+  protected _drawLine(p0: Point, p1: Point, color: Color) {
     const dx = p1.x - p0.x;
     const dy = p1.y - p0.y;
 
@@ -136,7 +195,7 @@ export class Rasterizor {
       const yValues = interpolate(p0, p1);
       for (let x = p0.x; x <= p1.x; x++) {
         const y = yValues[Math.floor(x - p0.x)];
-        putPixel(new Point(x, y), color, this.canvas, this.cavasBuffer);
+        putPixel(new Point(x, y), color, this.canvas, this.canvasBuffer);
       }
     } else {
       // The line is verical-ish. Make sure it's bottom to top.
@@ -147,91 +206,9 @@ export class Rasterizor {
       const xValues = interpolate(p0.reverse(), p1.reverse());
       for (let y = p0.y; y <= p1.y; y++) {
         const x = xValues[Math.floor(y - p0.y)];
-        putPixel(new Point(x, y), color, this.canvas, this.cavasBuffer);
+        putPixel(new Point(x, y), color, this.canvas, this.canvasBuffer);
       }
     }
-  }
-
-  drawProjectedSquare() {
-    // The four "front" vertices
-    const vAf = new Vec(-2, -0.5, 5);
-    const vBf = new Vec(-2, 0.5, 5);
-    const vCf = new Vec(-1, 0.5, 5);
-    const vDf = new Vec(-1, -0.5, 5);
-
-    // The four "back" vertices
-    const vAb = new Vec(-2, -0.5, 6);
-    const vBb = new Vec(-2, 0.5, 6);
-    const vCb = new Vec(-1, 0.5, 6);
-    const vDb = new Vec(-1, -0.5, 6);
-
-    // The front face
-    this.drawLine(
-      this._projectVertex(vAf),
-      this._projectVertex(vBf),
-      new Color(0, 0, 255),
-    );
-    this.drawLine(
-      this._projectVertex(vBf),
-      this._projectVertex(vCf),
-      new Color(0, 0, 255),
-    );
-    this.drawLine(
-      this._projectVertex(vCf),
-      this._projectVertex(vDf),
-      new Color(0, 0, 255),
-    );
-    this.drawLine(
-      this._projectVertex(vDf),
-      this._projectVertex(vAf),
-      new Color(0, 0, 255),
-    );
-
-    // The back face
-    this.drawLine(
-      this._projectVertex(vAb),
-      this._projectVertex(vBb),
-      new Color(255, 0, 0),
-    );
-    this.drawLine(
-      this._projectVertex(vBb),
-      this._projectVertex(vCb),
-      new Color(255, 0, 0),
-    );
-    this.drawLine(
-      this._projectVertex(vCb),
-      this._projectVertex(vDb),
-      new Color(255, 0, 0),
-    );
-    this.drawLine(
-      this._projectVertex(vDb),
-      this._projectVertex(vAb),
-      new Color(255, 0, 0),
-    );
-
-    // The front-to-back edges
-    this.drawLine(
-      this._projectVertex(vAf),
-      this._projectVertex(vAb),
-      new Color(0, 255, 0),
-    );
-    this.drawLine(
-      this._projectVertex(vBf),
-      this._projectVertex(vBb),
-      new Color(0, 255, 0),
-    );
-    this.drawLine(
-      this._projectVertex(vCf),
-      this._projectVertex(vCb),
-      new Color(0, 255, 0),
-    );
-    this.drawLine(
-      this._projectVertex(vDf),
-      this._projectVertex(vDb),
-      new Color(0, 255, 0),
-    );
-
-    this.render();
   }
 
   protected _viewportToCanvas(viewportPoint: Point) {
@@ -243,7 +220,7 @@ export class Rasterizor {
     );
   }
 
-  protected _projectVertex(vertex: Vec) {
+  protected _projectVertex(vertex: Vertex4) {
     const { x, y, z } = vertex;
     return this._viewportToCanvas(
       new Point(
@@ -251,5 +228,9 @@ export class Rasterizor {
         y * (this.scene.projectionPlanZ / z),
       ),
     );
+  }
+
+  protected _updateScene() {
+    this.canvasCtx.putImageData(this.canvasBuffer, 0, 0);
   }
 }

@@ -7,7 +7,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { Rasterizor } from '../rasterizor';
-// import { Point, Color } from '../utils';
+import { IdenticalMatrix4x4, makeOYRotationMatrix } from '../rasterizor/helpers';
+import { Camera, Instance } from '../rasterizor/entities';
+import { CUBE } from '../rasterizor/models';
+import { Vec } from '../utils';
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 
@@ -18,19 +21,19 @@ onMounted(() => {
 
   rasterizor.value = new Rasterizor({
     canvas: canvasRef.value,
+    scene: {
+      instances: [
+        new Instance(CUBE, new Vec(-1.5, 0, 7), IdenticalMatrix4x4, 0.75),
+        new Instance(CUBE, new Vec(1.25, 2.5, 7.5), makeOYRotationMatrix(195)),
+      ],
+      camera: new Camera(
+        new Vec(-3, 1, 2), 
+        makeOYRotationMatrix(-30)
+      )
+    }
   });
 
-  // const points = [
-  //   new Point(-200, -250, 0.3), 
-  //   new Point(200, 50, 0.1), 
-  //   new Point(20, 250, 1.0), 
-  // ] as const;
-
-  // rasterizor.value.drawWireframeTriangle(...points, new Color(0, 0 ,0));
-  // rasterizor.value.drawShadedTriangle(...points, new Color(0, 255, 0));
-  // rasterizor.value.render();
-
-  rasterizor.value.drawProjectedSquare();
+  rasterizor.value.render();
 });
 </script>
 
