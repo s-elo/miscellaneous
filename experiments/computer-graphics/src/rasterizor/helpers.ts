@@ -1,5 +1,5 @@
 import type { Matrix4x4 } from '../types';
-import type { Vec } from '../utils';
+import { Vec } from '../utils';
 
 export class Mat4x4 {
   constructor(public data: Matrix4x4) {}
@@ -19,6 +19,17 @@ export class Vertex4 {
     public z: number,
     public w: number,
   ) {}
+
+  toVec3() {
+    if (this.w === 0) {
+      throw new Error('Cannot convert Vertex4 to Vec3 when w is 0');
+    }
+    return new Vec(this.x, this.y, this.z);
+  }
+
+  static fromVec3(vec: Vec) {
+    return new Vertex4(vec.x, vec.y, vec.z, 1);
+  }
 }
 
 /** generate a rotation matrix(Y axis rotation) by degrees */

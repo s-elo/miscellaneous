@@ -25,6 +25,8 @@ onMounted(() => {
       instances: [
         new Instance(CUBE, new Vec(-1.5, 0, 7), IdenticalMatrix4x4, 0.75),
         new Instance(CUBE, new Vec(1.25, 2.5, 7.5), makeOYRotationMatrix(195)),
+        // this one should be clipped
+        new Instance(CUBE, new Vec(0, 0, -10), makeOYRotationMatrix(195)),
       ],
       camera: new Camera(
         new Vec(-3, 1, 2), 

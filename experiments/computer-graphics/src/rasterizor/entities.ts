@@ -1,4 +1,5 @@
-import type { Color, Vec } from '../utils';
+import type { Color } from '../utils';
+import { Vec } from '../utils';
 import {
   Mat4x4,
   multiplyMM4,
@@ -19,7 +20,13 @@ export class Triangle {
 
 /** Each model can be composed by triangles based on its vertices */
 export class Model {
-  constructor(public vertices: Vec[], public triangles: Triangle[]) {}
+  constructor(
+    public vertices: Vec[],
+    public triangles: Triangle[],
+    /** computing the bounding sphere is complex, so we just provide it manually */
+    public boundsCenter: Vec,
+    public boundsRadius: number,
+  ) {}
 }
 
 export class Instance {
@@ -43,6 +50,21 @@ export class Instance {
   }
 }
 
+export class ClipPlane {
+  constructor(public normal: Vec, public distance: number) {}
+}
+
+const s2 = 1.0 / Math.sqrt(2);
 export class Camera {
-  constructor(public position: Vec, public orientation: Mat4x4) {}
+  constructor(
+    public position: Vec,
+    public orientation: Mat4x4,
+    public clipPlanes: ClipPlane[] = [
+      new ClipPlane(new Vec(0, 0, 1), -1), // Near
+      new ClipPlane(new Vec(s2, 0, s2), 0), // Left
+      new ClipPlane(new Vec(-s2, 0, s2), 0), // Right
+      new ClipPlane(new Vec(0, -s2, s2), 0), // Top
+      new ClipPlane(new Vec(0, s2, s2), 0), // Bottom
+    ],
+  ) {}
 }

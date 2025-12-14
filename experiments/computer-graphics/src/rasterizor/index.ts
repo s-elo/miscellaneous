@@ -16,7 +16,7 @@ import {
   transposed,
   Vertex4,
 } from './helpers';
-import { Model, Triangle, Instance, Camera } from './entities';
+import { Model, Triangle, Instance, Camera, ClipPlane } from './entities';
 
 interface Scene {
   viewportSize: number;
@@ -73,21 +73,114 @@ export class Rasterizor {
 
     instances.forEach((instance) => {
       const transform = multiplyMM4(cameraMatrix, instance.transform);
-      this._renderModel(instance.model, transform);
+      const transformedAndClippedModel = this._transformAndClip(
+        this.scene.camera.clipPlanes,
+        instance,
+        transform,
+      );
+      transformedAndClippedModel &&
+        this._renderModel(transformedAndClippedModel);
     });
 
     this._updateScene();
   }
 
-  protected _renderModel(model: Model, transform: Mat4x4) {
-    const projectedVertexes = model.vertices.reduce<Point[]>((ret, vertex) => {
+  /** transform the vertexes of the instance and clip the instance, then return the new model */
+  protected _transformAndClip(
+    clipPlanes: ClipPlane[],
+    instance: Instance,
+    transform: Mat4x4,
+  ) {
+    // Transform the bounding sphere, and attempt early discard
+    // if the whole model is behind the camera
+    const transformedCenter = multiplyMV(
+      transform,
+      Vertex4.fromVec3(instance.model.boundsCenter),
+    );
+    const transformedRadius = instance.model.boundsRadius * instance.scale;
+    for (const plane of clipPlanes) {
+      // d = <N, P> + D
+      const distance =
+        plane.normal.dot(transformedCenter.toVec3()) + plane.distance;
+      if (distance < -transformedRadius) {
+        return null;
+      }
+    }
+
+    const transformedVertexes = instance.model.vertices.map((vertex) => {
       /**
        * transformed to a 4D point in homogenous coordinates
        * the h value is 1 means it is a position point, 0 is a 4D vector
        * */
       const vertexH = new Vertex4(vertex.x, vertex.y, vertex.z, 1);
+      return multiplyMV(transform, vertexH).toVec3();
+    });
+
+    //  Clip the entire model against each successive plane.
+    let triangles = instance.model.triangles.slice();
+    for (const plane of clipPlanes) {
+      const newTriangles: Triangle[] = [];
+      for (const triangle of triangles) {
+        newTriangles.push(
+          ...this._clipTriangle(triangle, plane, transformedVertexes),
+        );
+      }
+      triangles = newTriangles;
+    }
+
+    return new Model(
+      transformedVertexes,
+      triangles,
+      transformedCenter.toVec3(),
+      transformedRadius,
+    );
+  }
+
+  /* Clips a triangle against a plane. Adds output to triangles and vertices. */
+  protected _clipTriangle(
+    triangle: Triangle,
+    plane: ClipPlane,
+    /** the transformed vertices */
+    vertices: Vec[],
+  ) {
+    const triangles: Triangle[] = [];
+
+    const v0 = vertices[triangle.v0];
+    const v1 = vertices[triangle.v1];
+    const v2 = vertices[triangle.v2];
+
+    // check if the triangle is in front of the plane
+    const in0 = plane.normal.dot(v0) + plane.distance > 0 ? 1 : 0;
+    const in1 = plane.normal.dot(v1) + plane.distance > 0 ? 1 : 0;
+    const in2 = plane.normal.dot(v2) + plane.distance > 0 ? 1 : 0;
+
+    const inCount = in0 + in1 + in2;
+    if (inCount === 0) {
+      // Nothing to do - the triangle is fully clipped out.
+    } else if (inCount == 3) {
+      // The triangle is fully in front of the plane.
+      triangles.push(triangle);
+    } else if (inCount === 1) {
+      // The triangle has one vertex in. Output is one clipped triangle.
+      // let A be the vertex with a positive distance
+      // compute B' = Intersection(AB, plane)
+      // compute C' = Intersection(AC, plane)
+      // return [Triangle(A, B', C')]
+    } else if (inCount === 2) {
+      // The triangle has two vertices in. Output is two clipped triangles.
+      // let C be the vertex with a negative distance
+      // compute A' = Intersection(AC, plane)
+      // compute B' = Intersection(BC, plane)
+      // return [Triangle(A, B, A'), Triangle(A', B, B')]
+    }
+
+    return triangles;
+  }
+
+  protected _renderModel(model: Model) {
+    const projectedVertexes = model.vertices.reduce<Point[]>((ret, vertex) => {
       // project the vertex to 2D viewport
-      ret.push(this._projectVertex(multiplyMV(transform, vertexH)));
+      ret.push(this._projectVertex(vertex));
       return ret;
     }, []);
 
@@ -228,7 +321,7 @@ export class Rasterizor {
     );
   }
 
-  protected _projectVertex(vertex: Vertex4) {
+  protected _projectVertex(vertex: Vec) {
     const { x, y, z } = vertex;
     return this._viewportToCanvas(
       new Point(

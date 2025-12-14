@@ -34,4 +34,6 @@ export const CUBE = new Model(
     new Triangle(2, 6, 7, CYAN),
     new Triangle(2, 7, 3, CYAN),
   ],
+  new Vec(0, 0, 0),
+  Math.sqrt(3),
 );
