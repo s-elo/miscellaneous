@@ -198,7 +198,7 @@ export class Rasterizor {
         putPixel(new Point(x, y), color, this.canvas, this.canvasBuffer);
       }
     } else {
-      // The line is verical-ish. Make sure it's bottom to top.
+      // The line is vertical-ish. Make sure it's bottom to top.
       if (dy < 0) {
         [p0, p1] = swapPoints(p0, p1);
       }

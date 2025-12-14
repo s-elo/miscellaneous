@@ -6,26 +6,34 @@
 
 // @lc code=start
 class MinStack {
-  constructor() {
-    return;
-  }
+  constructor(private stack: number[] = [], private minStack: number[] = []) {}
 
   push(val: number): void {
+    this.stack.push(val);
+    if (this.minStack.length === 0 || val <= this.getMin()) {
+      this.minStack.push(val);
+    }
     return;
   }
 
   pop(): void {
+    if (this.stack.pop() === this.getMin()) {
+      this.minStack.pop();
+    }
+
     return;
   }
 
   top(): number {
-    return 0;
+    return this.stack[this.stack.length - 1];
   }
 
   getMin(): number {
-    return 0;
+    return this.minStack[this.minStack.length - 1];
   }
 }
+
+new MinStack();
 
 /**
  * Your MinStack object will be instantiated and called as such:
