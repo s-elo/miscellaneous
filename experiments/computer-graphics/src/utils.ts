@@ -128,8 +128,8 @@ export function transformOriginToTopLeft(
   canvas: HTMLCanvasElement,
 ) {
   return new Point(
-    canvas.width / 2 + Math.floor(point.x),
-    canvas.height / 2 - Math.floor(point.y),
+    canvas.width / 2 + floor(point.x),
+    canvas.height / 2 - floor(point.y),
   );
 }
 
@@ -177,4 +177,9 @@ export function swapPoints(p0: Point, p1: Point) {
   p0 = p1;
   p1 = swap;
   return [p0, p1];
+}
+
+/** floor the number for both positive and negative */
+export function floor(num: number) {
+  return num | 0;
 }

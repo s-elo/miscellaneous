@@ -1,4 +1,12 @@
-import { Color, interpolate, Point, putPixel, swapPoints, Vec } from '../utils';
+import {
+  Color,
+  floor,
+  interpolate,
+  Point,
+  putPixel,
+  swapPoints,
+  Vec,
+} from '../utils';
 import {
   IdenticalMatrix4x4,
   makeTranslationMatrix,
@@ -138,7 +146,7 @@ export class Rasterizor {
 
     // Determine which is left and which is right
     // just pick the middle x values to compare
-    const m = Math.floor(x012.length / 2);
+    const m = floor(x012.length / 2);
     let xLeft: number[] = [];
     let xRight: number[] = [];
     let hLeft: number[] = [];
@@ -157,14 +165,14 @@ export class Rasterizor {
 
     // Draw the horizontal segments
     for (let y = p0.y; y <= p2.y; y++) {
-      const xl = xLeft[Math.floor(y - p0.y)];
-      const xr = xRight[Math.floor(y - p0.y)];
+      const xl = xLeft[floor(y - p0.y)];
+      const xr = xRight[floor(y - p0.y)];
       const hl = hLeft[y - p0.y];
       const hr = hRight[y - p0.y];
       const hSegment = interpolate(new Point(xl, hl), new Point(xr, hr));
 
       for (let x = xl; x <= xr; x++) {
-        const h = hSegment[Math.floor(x - xl)];
+        const h = hSegment[floor(x - xl)];
         putPixel(new Point(x, y), color.mul(h), this.canvas, this.canvasBuffer);
       }
     }
@@ -194,7 +202,7 @@ export class Rasterizor {
 
       const yValues = interpolate(p0, p1);
       for (let x = p0.x; x <= p1.x; x++) {
-        const y = yValues[Math.floor(x - p0.x)];
+        const y = yValues[floor(x - p0.x)];
         putPixel(new Point(x, y), color, this.canvas, this.canvasBuffer);
       }
     } else {
@@ -205,7 +213,7 @@ export class Rasterizor {
 
       const xValues = interpolate(p0.reverse(), p1.reverse());
       for (let y = p0.y; y <= p1.y; y++) {
-        const x = xValues[Math.floor(y - p0.y)];
+        const x = xValues[floor(y - p0.y)];
         putPixel(new Point(x, y), color, this.canvas, this.canvasBuffer);
       }
     }
