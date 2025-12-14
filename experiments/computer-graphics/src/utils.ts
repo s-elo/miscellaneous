@@ -1,3 +1,5 @@
+import type { ClipPlane } from './rasterizor/entities';
+
 export class Vec {
   constructor(public x: number, public y: number, public z: number) {}
 
@@ -142,7 +144,8 @@ export function putPixel(
   const { x, y } = transformOriginToTopLeft(point, canvas);
 
   if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) {
-    throw new Error('Pixel out of bounds');
+    return;
+    // throw new Error('Pixel out of bounds');
   }
 
   // https://developer.mozilla.org/en-US/docs/Web/API/ImageData/data
@@ -182,4 +185,18 @@ export function swapPoints(p0: Point, p1: Point) {
 /** floor the number for both positive and negative */
 export function floor(num: number) {
   return num | 0;
+}
+
+/** get the point where the plane and the line intersect */
+export function planeLineIntersectPoint(
+  start: Vec,
+  end: Vec,
+  plane: ClipPlane,
+) {
+  // t=(−D−⟨N,A⟩)/⟨N,B−A⟩
+  const t =
+    (-plane.distance - plane.normal.dot(start)) /
+    plane.normal.dot(end.sub(start));
+
+  return start.add(end.sub(start).mul(t));
 }

@@ -27,9 +27,14 @@ onMounted(() => {
         new Instance(CUBE, new Vec(1.25, 2.5, 7.5), makeOYRotationMatrix(195)),
         // this one should be clipped
         new Instance(CUBE, new Vec(0, 0, -10), makeOYRotationMatrix(195)),
+        // this one should be partially clipped
+        // FIXME: not working, probably due to the clipping planes
+        // but can clipped by ignore the out-of-boundary points
+        new Instance(CUBE, new Vec(1.5, 0, 4.5), IdenticalMatrix4x4, 0.75)
       ],
       camera: new Camera(
         new Vec(-3, 1, 2), 
+        // new Vec(0, 0, 0),
         makeOYRotationMatrix(-30)
       )
     }

@@ -2,6 +2,7 @@ import {
   Color,
   floor,
   interpolate,
+  planeLineIntersectPoint,
   Point,
   putPixel,
   swapPoints,
@@ -150,11 +151,15 @@ export class Rasterizor {
     const v2 = vertices[triangle.v2];
 
     // check if the triangle is in front of the plane
-    const in0 = plane.normal.dot(v0) + plane.distance > 0 ? 1 : 0;
-    const in1 = plane.normal.dot(v1) + plane.distance > 0 ? 1 : 0;
-    const in2 = plane.normal.dot(v2) + plane.distance > 0 ? 1 : 0;
+    const inFrontVertexIndexes: number[] = [];
+    plane.normal.dot(v0) + plane.distance > 0 &&
+      inFrontVertexIndexes.push(triangle.v0);
+    plane.normal.dot(v1) + plane.distance > 0 &&
+      inFrontVertexIndexes.push(triangle.v1);
+    plane.normal.dot(v2) + plane.distance > 0 &&
+      inFrontVertexIndexes.push(triangle.v2);
 
-    const inCount = in0 + in1 + in2;
+    const inCount = inFrontVertexIndexes.length;
     if (inCount === 0) {
       // Nothing to do - the triangle is fully clipped out.
     } else if (inCount == 3) {
@@ -166,12 +171,49 @@ export class Rasterizor {
       // compute B' = Intersection(AB, plane)
       // compute C' = Intersection(AC, plane)
       // return [Triangle(A, B', C')]
+      const [A] = inFrontVertexIndexes;
+      const [B, C] = [triangle.v0, triangle.v1, triangle.v2].filter(
+        (v) => v !== A,
+      );
+
+      const Bv1 = planeLineIntersectPoint(vertices[A], vertices[B], plane);
+      const Cv1 = planeLineIntersectPoint(vertices[A], vertices[C], plane);
+      vertices.push(Bv1);
+      vertices.push(Cv1);
+
+      triangles.push(
+        new Triangle(
+          A,
+          vertices.length - 2,
+          vertices.length - 1,
+          triangle.color,
+        ),
+      );
     } else if (inCount === 2) {
       // The triangle has two vertices in. Output is two clipped triangles.
       // let C be the vertex with a negative distance
       // compute A' = Intersection(AC, plane)
       // compute B' = Intersection(BC, plane)
       // return [Triangle(A, B, A'), Triangle(A', B, B')]
+      const [A, B] = inFrontVertexIndexes;
+      const [C] = [triangle.v0, triangle.v1, triangle.v2].filter(
+        (v) => v !== A && v !== B,
+      );
+
+      const Av1 = planeLineIntersectPoint(vertices[A], vertices[C], plane);
+      const Bv1 = planeLineIntersectPoint(vertices[B], vertices[C], plane);
+      vertices.push(Av1);
+      vertices.push(Bv1);
+
+      triangles.push(
+        new Triangle(A, B, vertices.length - 2, triangle.color),
+        new Triangle(
+          vertices.length - 2,
+          B,
+          vertices.length - 1,
+          triangle.color,
+        ),
+      );
     }
 
     return triangles;
