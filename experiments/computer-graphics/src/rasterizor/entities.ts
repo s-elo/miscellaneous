@@ -11,11 +11,17 @@ import {
 export class Triangle {
   constructor(
     /** vertex indices of the model */
-    public v0: number,
-    public v1: number,
-    public v2: number,
+    public indexes: [number, number, number],
     public color: Color,
   ) {}
+
+  nor(vertices: Vec[]): Vec {
+    const [v0, v1, v2] = this.indexes;
+
+    const v0v1 = vertices[v1].sub(vertices[v0]);
+    const v0v2 = vertices[v2].sub(vertices[v0]);
+    return v0v1.cross(v0v2);
+  }
 }
 
 /** Each model can be composed by triangles based on its vertices */

@@ -1,11 +1,13 @@
 import {
   Color,
+  edgeInterpolate,
   floor,
   interpolate,
   planeLineIntersectPoint,
   Point,
   putPixel,
   swapPoints,
+  transformOriginToTopLeft,
   Vec,
 } from '../utils';
 import {
@@ -38,6 +40,8 @@ const getDefaultScene = () => ({
   camera: new Camera(new Vec(0, 0, 0), IdenticalMatrix4x4),
 });
 
+const initDepthBuffer = (size: number) => Array(size).fill(-Infinity);
+
 export class Rasterizor {
   canvas: HTMLCanvasElement;
 
@@ -46,6 +50,9 @@ export class Rasterizor {
   canvasBuffer: ImageData;
 
   scene: Scene;
+
+  /** to record the biggest 1/z(smallest z) for each pixel */
+  depthBuffer: number[];
 
   constructor({ canvas, scene = {} }: Options) {
     const ctx = canvas.getContext('2d');
@@ -61,6 +68,8 @@ export class Rasterizor {
       ...getDefaultScene(),
       ...scene,
     };
+
+    this.depthBuffer = initDepthBuffer(canvas.width * canvas.height);
   }
 
   /** render one frame */
@@ -146,19 +155,17 @@ export class Rasterizor {
   ) {
     const triangles: Triangle[] = [];
 
-    const v0 = vertices[triangle.v0];
-    const v1 = vertices[triangle.v1];
-    const v2 = vertices[triangle.v2];
+    const [vi0, vi1, vi2] = triangle.indexes;
+
+    const v0 = vertices[vi0];
+    const v1 = vertices[vi1];
+    const v2 = vertices[vi2];
 
     // check if the triangle is in front of the plane
     const inFrontVertexIndexes: number[] = [];
-    plane.normal.dot(v0) + plane.distance > 0 &&
-      inFrontVertexIndexes.push(triangle.v0);
-    plane.normal.dot(v1) + plane.distance > 0 &&
-      inFrontVertexIndexes.push(triangle.v1);
-    plane.normal.dot(v2) + plane.distance > 0 &&
-      inFrontVertexIndexes.push(triangle.v2);
-
+    plane.normal.dot(v0) + plane.distance > 0 && inFrontVertexIndexes.push(vi0);
+    plane.normal.dot(v1) + plane.distance > 0 && inFrontVertexIndexes.push(vi1);
+    plane.normal.dot(v2) + plane.distance > 0 && inFrontVertexIndexes.push(vi2);
     const inCount = inFrontVertexIndexes.length;
     if (inCount === 0) {
       // Nothing to do - the triangle is fully clipped out.
@@ -172,9 +179,7 @@ export class Rasterizor {
       // compute C' = Intersection(AC, plane)
       // return [Triangle(A, B', C')]
       const [A] = inFrontVertexIndexes;
-      const [B, C] = [triangle.v0, triangle.v1, triangle.v2].filter(
-        (v) => v !== A,
-      );
+      const [B, C] = triangle.indexes.filter((v) => v !== A);
 
       const Bv1 = planeLineIntersectPoint(vertices[A], vertices[B], plane);
       const Cv1 = planeLineIntersectPoint(vertices[A], vertices[C], plane);
@@ -183,9 +188,7 @@ export class Rasterizor {
 
       triangles.push(
         new Triangle(
-          A,
-          vertices.length - 2,
-          vertices.length - 1,
+          [A, vertices.length - 2, vertices.length - 1],
           triangle.color,
         ),
       );
@@ -196,9 +199,7 @@ export class Rasterizor {
       // compute B' = Intersection(BC, plane)
       // return [Triangle(A, B, A'), Triangle(A', B, B')]
       const [A, B] = inFrontVertexIndexes;
-      const [C] = [triangle.v0, triangle.v1, triangle.v2].filter(
-        (v) => v !== A && v !== B,
-      );
+      const [C] = triangle.indexes.filter((v) => v !== A && v !== B);
 
       const Av1 = planeLineIntersectPoint(vertices[A], vertices[C], plane);
       const Bv1 = planeLineIntersectPoint(vertices[B], vertices[C], plane);
@@ -206,11 +207,9 @@ export class Rasterizor {
       vertices.push(Bv1);
 
       triangles.push(
-        new Triangle(A, B, vertices.length - 2, triangle.color),
+        new Triangle([A, B, vertices.length - 2], triangle.color),
         new Triangle(
-          vertices.length - 2,
-          B,
-          vertices.length - 1,
+          [vertices.length - 2, B, vertices.length - 1],
           triangle.color,
         ),
       );
@@ -227,18 +226,134 @@ export class Rasterizor {
     }, []);
 
     model.triangles.forEach((triangle) =>
-      this._renderTriangle(triangle, projectedVertexes),
+      this._renderTriangle(triangle, model.vertices, projectedVertexes),
     );
   }
 
   /** render a triangle by the projected vertexes */
-  protected _renderTriangle(triangle: Triangle, projectedVertexes: Point[]) {
-    return this._drawWireframeTriangle(
-      projectedVertexes[triangle.v0],
-      projectedVertexes[triangle.v1],
-      projectedVertexes[triangle.v2],
-      triangle.color,
+  protected _renderTriangle(
+    triangle: Triangle,
+    vertices: Vec[],
+    projectedVertexes: Point[],
+  ) {
+    // Sort the points by projected point Y values
+    const [si0, si1, si2] = this._getSortedVertexIndexes(
+      triangle.indexes,
+      projectedVertexes,
     );
+    const v0 = vertices[triangle.indexes[si0]];
+    const v1 = vertices[triangle.indexes[si1]];
+    const v2 = vertices[triangle.indexes[si2]];
+
+    // Compute triangle normal. Use the unsorted vertices, otherwise the winding of the points may change.
+    const normal = triangle.nor(vertices);
+
+    // Backface culling.
+    // Only need to check one vertex since all vertices are in the same plane.
+    const vertexToCamera = vertices[triangle.indexes[0]].mul(-1); // Should be Subtract(camera.position, vertices[triangle.indexes[0]])
+    // <N, V-C> <=0 means the angle is more than 90 degrees, backface
+    if (vertexToCamera.dot(normal) <= 0) {
+      return;
+    }
+
+    // Get attribute values (X, 1/Z) at the vertices.
+    const p0 = projectedVertexes[triangle.indexes[si0]];
+    const p1 = projectedVertexes[triangle.indexes[si1]];
+    const p2 = projectedVertexes[triangle.indexes[si2]];
+
+    // Compute attribute values at the edges.
+    const [x02, x012] = edgeInterpolate(
+      new Point(p0.y, p0.x),
+      new Point(p1.y, p1.x),
+      new Point(p2.y, p2.x),
+    );
+    const [iz02, iz012] = edgeInterpolate(
+      new Point(p0.y, 1.0 / v0.z),
+      new Point(p1.y, 1.0 / v1.z),
+      new Point(p2.y, 1.0 / v2.z),
+    );
+
+    // Determine which is left and which is right.
+    const m = floor(x02.length / 2);
+    let [xLeft, xRight] = [x02, x012];
+    let [izLeft, izRight] = [iz02, iz012];
+    if (x02[m] >= x012[m]) {
+      [xLeft, xRight] = [x012, x02];
+      [izLeft, izRight] = [iz012, iz02];
+    }
+
+    // Draw horizontal segments.
+    for (let y = p0.y; y <= p2.y; y++) {
+      const [xl, xr] = [floor(xLeft[y - p0.y]), floor(xRight[y - p0.y])];
+
+      // Interpolate attributes for this scanline.
+      const [zl, zr] = [izLeft[y - p0.y], izRight[y - p0.y]];
+
+      const zscan = interpolate(new Point(xl, zl), new Point(xr, zr));
+      for (let x = xl; x <= xr; x++) {
+        if (this._updateDepthBufferIfCloser(new Point(x, y), zscan[x - xl])) {
+          this._putPixel(new Point(x, y), triangle.color);
+        }
+      }
+    }
+
+    // draw triangle outlines
+    const outlineColor = triangle.color.mul(0.75);
+    this._drawLine(p0, p1, outlineColor);
+    this._drawLine(p0, p2, outlineColor);
+    this._drawLine(p2, p1, outlineColor);
+  }
+
+  protected _updateDepthBufferIfCloser(point: Point, iz: number) {
+    const { x, y } = transformOriginToTopLeft(point, this.canvas);
+
+    if (x < 0 || x >= this.canvas.width || y < 0 || y >= this.canvas.height) {
+      return false;
+    }
+
+    const pos = x + this.canvas.width * y;
+    if (this.depthBuffer[pos] == undefined || this.depthBuffer[pos] < iz) {
+      this.depthBuffer[pos] = iz;
+      return true;
+    }
+
+    return false;
+  }
+
+  // Sort the points from bottom to top.
+  // Technically, sort the indexes to the vertex indexes in the triangle from bottom to top.
+  protected _getSortedVertexIndexes(
+    vertexIndexes: number[],
+    projected: Point[],
+  ) {
+    const indexes = [0, 1, 2];
+
+    if (
+      projected[vertexIndexes[indexes[1]]].y <
+      projected[vertexIndexes[indexes[0]]].y
+    ) {
+      const swap = indexes[0];
+      indexes[0] = indexes[1];
+      indexes[1] = swap;
+    }
+    if (
+      projected[vertexIndexes[indexes[2]]].y <
+      projected[vertexIndexes[indexes[0]]].y
+    ) {
+      const swap = indexes[0];
+      indexes[0] = indexes[2];
+      indexes[2] = swap;
+    }
+    if (
+      projected[vertexIndexes[indexes[2]]].y <
+      projected[vertexIndexes[indexes[1]]].y
+    ) {
+      const swap = indexes[1];
+      indexes[1] = indexes[2];
+      indexes[2] = swap;
+    }
+
+    return indexes;
   }
 
   /**
@@ -308,7 +423,7 @@ export class Rasterizor {
 
       for (let x = xl; x <= xr; x++) {
         const h = hSegment[floor(x - xl)];
-        putPixel(new Point(x, y), color.mul(h), this.canvas, this.canvasBuffer);
+        this._putPixel(new Point(x, y), color.mul(h));
       }
     }
   }
@@ -338,7 +453,7 @@ export class Rasterizor {
       const yValues = interpolate(p0, p1);
       for (let x = p0.x; x <= p1.x; x++) {
         const y = yValues[floor(x - p0.x)];
-        putPixel(new Point(x, y), color, this.canvas, this.canvasBuffer);
+        this._putPixel(new Point(x, y), color);
       }
     } else {
       // The line is vertical-ish. Make sure it's bottom to top.
@@ -349,16 +464,17 @@ export class Rasterizor {
       const xValues = interpolate(p0.reverse(), p1.reverse());
       for (let y = p0.y; y <= p1.y; y++) {
         const x = xValues[floor(y - p0.y)];
-        putPixel(new Point(x, y), color, this.canvas, this.canvasBuffer);
+        this._putPixel(new Point(x, y), color);
       }
     }
   }
 
   protected _viewportToCanvas(viewportPoint: Point) {
     const { x, y, h } = viewportPoint;
+    // need to floor to avoid index overflow when interpolating
     return new Point(
-      x * (this.canvas.width / this.scene.viewportSize),
-      y * (this.canvas.height / this.scene.viewportSize),
+      floor(x * (this.canvas.width / this.scene.viewportSize)),
+      floor(y * (this.canvas.height / this.scene.viewportSize)),
       h,
     );
   }
@@ -371,6 +487,10 @@ export class Rasterizor {
         y * (this.scene.projectionPlanZ / z),
       ),
     );
+  }
+
+  protected _putPixel(point: Point, color: Color) {
+    putPixel(point, color, this.canvas, this.canvasBuffer);
   }
 
   protected _updateScene() {

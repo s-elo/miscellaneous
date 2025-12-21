@@ -26,6 +26,14 @@ export class Vec {
   nor() {
     return this.mul(1 / this.length());
   }
+
+  cross(other: Vec) {
+    return new Vec(
+      this.y * other.z - this.z * other.y,
+      this.z * other.x - this.x * other.z,
+      this.x * other.y - this.y * other.x,
+    );
+  }
 }
 
 export class Color {
@@ -199,4 +207,26 @@ export function planeLineIntersectPoint(
     plane.normal.dot(end.sub(start));
 
   return start.add(end.sub(start).mul(t));
+}
+
+/**
+ * Get the edge interpolated values between v0 and v2, and between v0, v1 and v1, v2.
+
+ *       v2
+ *
+ *           v1
+ *
+ * v0
+ */
+export function edgeInterpolate(
+  { x: x0, y: y0 }: Point,
+  { x: x1, y: y1 }: Point,
+  { x: x2, y: y2 }: Point,
+) {
+  const v01 = interpolate(new Point(x0, y0), new Point(x1, y1));
+  const v12 = interpolate(new Point(x1, y1), new Point(x2, y2));
+  const v02 = interpolate(new Point(x0, y0), new Point(x2, y2));
+  v01.pop();
+  const v012 = v01.concat(v12);
+  return [v02, v012];
 }
