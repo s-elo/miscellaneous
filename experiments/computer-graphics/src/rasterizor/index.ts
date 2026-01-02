@@ -21,11 +21,16 @@ import {
 } from './helpers';
 import { Model, Triangle, Instance, Camera, ClipPlane } from './entities';
 
-interface Scene {
+export interface Scene {
   viewportSize: number;
   projectionPlanZ: number;
   instances: Instance[];
   camera: Camera;
+  renderOptions: {
+    renderTriangleOutlines?: boolean;
+    backfaceCulling?: boolean;
+    depthBuffering?: boolean;
+  };
 }
 
 export interface Options {
@@ -38,6 +43,11 @@ const getDefaultScene = () => ({
   projectionPlanZ: 1,
   instances: [],
   camera: new Camera(new Vec(0, 0, 0), IdenticalMatrix4x4),
+  renderOptions: {
+    depthBuffering: true,
+    backfaceCulling: true,
+    renderTriangleOutlines: true,
+  },
 });
 
 const initDepthBuffer = (size: number) => Array(size).fill(-Infinity);
@@ -93,6 +103,11 @@ export class Rasterizor {
     });
 
     this._updateScene();
+  }
+
+  reset() {
+    this.canvas.width = this.canvas.width;
+    this.depthBuffer = initDepthBuffer(this.canvas.width * this.canvas.height);
   }
 
   /** transform the vertexes of the instance and clip the instance, then return the new model */
@@ -236,6 +251,8 @@ export class Rasterizor {
     vertices: Vec[],
     projectedVertexes: Point[],
   ) {
+    const { renderOptions } = this.scene;
+
     // Sort the points by projected point Y values
     const [si0, si1, si2] = this._getSortedVertexIndexes(
       triangle.indexes,
@@ -249,11 +266,13 @@ export class Rasterizor {
     const normal = triangle.nor(vertices);
 
     // Backface culling.
-    // Only need to check one vertex since all vertices are in the same plane.
-    const vertexToCamera = vertices[triangle.indexes[0]].mul(-1); // Should be Subtract(camera.position, vertices[triangle.indexes[0]])
-    // <N, V-C> <=0 means the angle is more than 90 degrees, backface
-    if (vertexToCamera.dot(normal) <= 0) {
-      return;
+    if (renderOptions?.backfaceCulling) {
+      // Only need to check one vertex since all vertices are in the same plane.
+      const vertexToCamera = vertices[triangle.indexes[0]].mul(-1); // Should be Subtract(camera.position, vertices[triangle.indexes[0]])
+      // <N, V-C> <=0 means the angle is more than 90 degrees, backface
+      if (vertexToCamera.dot(normal) <= 0) {
+        return;
+      }
     }
 
     // Get attribute values (X, 1/Z) at the vertices.
@@ -291,17 +310,22 @@ export class Rasterizor {
 
       const zscan = interpolate(new Point(xl, zl), new Point(xr, zr));
       for (let x = xl; x <= xr; x++) {
-        if (this._updateDepthBufferIfCloser(new Point(x, y), zscan[x - xl])) {
+        if (
+          !renderOptions?.depthBuffering ||
+          this._updateDepthBufferIfCloser(new Point(x, y), zscan[x - xl])
+        ) {
           this._putPixel(new Point(x, y), triangle.color);
         }
       }
     }
 
     // draw triangle outlines
-    const outlineColor = triangle.color.mul(0.75);
-    this._drawLine(p0, p1, outlineColor);
-    this._drawLine(p0, p2, outlineColor);
-    this._drawLine(p2, p1, outlineColor);
+    if (this.scene.renderOptions?.renderTriangleOutlines) {
+      const outlineColor = triangle.color.mul(0.75);
+      this._drawLine(p0, p1, outlineColor);
+      this._drawLine(p0, p2, outlineColor);
+      this._drawLine(p2, p1, outlineColor);
+    }
   }
 
   protected _updateDepthBufferIfCloser(point: Point, iz: number) {
