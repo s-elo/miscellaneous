@@ -1,0 +1,22 @@
+{
+  "name": "built-in-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rsbuild build",
+    "dev": "rsbuild dev --open",
+    "preview": "rsbuild preview"
+  },
+  "dependencies": {
+    "dompurify": "^3.3.1",
+    "streaming-markdown": "^0.2.15",
+    "vue": "^3.5.25"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^1.6.14",
+    "@rsbuild/plugin-vue": "^1.2.1",
+    "@types/dom-chromium-ai": "^0.0.13",
+    "typescript": "^5.9.3"
+  }
+}
