@@ -20,6 +20,16 @@ import {
   Vertex4,
 } from './helpers';
 import { Model, Triangle, Instance, Camera, ClipPlane } from './entities';
+import { Light, LightingModel, LightType } from '../ray-tracing/light';
+
+export enum ShadingModel {
+  /** compute lighting for the entire triangle. */
+  FLAT,
+  /** Gouraud shading: compute lighting at the vertices, and interpolate. */
+  GOURAUD,
+  /** Phong shading: interpolate normal vectors. */
+  PHONG,
+}
 
 export interface Scene {
   viewportSize: number;
@@ -27,10 +37,23 @@ export interface Scene {
   instances: Instance[];
   camera: Camera;
   renderOptions: {
-    renderTriangleOutlines?: boolean;
-    backfaceCulling?: boolean;
-    depthBuffering?: boolean;
+    /** if to render the outlines of triangles */
+    renderTriangleOutlines: boolean;
+    /** if to do backface culling */
+    backfaceCulling: boolean;
+    /** if to do depth buffering */
+    depthBuffering: boolean;
+    /**
+     * if to use vertex normals from the model definition,
+     * otherwise use face normals computed by triangle.nor
+     * */
+    useVertexNormals: boolean;
+    /** which shading model to use */
+    shadingModel: ShadingModel;
+    /** include which lighting model, diffuse or specular or both */
+    lightingModel: number;
   };
+  lights: Light[];
 }
 
 export interface Options {
@@ -38,7 +61,7 @@ export interface Options {
   scene?: Partial<Scene>;
 }
 
-const getDefaultScene = () => ({
+export const getDefaultScene = () => ({
   viewportSize: 1,
   projectionPlanZ: 1,
   instances: [],
@@ -47,10 +70,18 @@ const getDefaultScene = () => ({
     depthBuffering: true,
     backfaceCulling: true,
     renderTriangleOutlines: true,
+    shadingModel: ShadingModel.GOURAUD,
+    useVertexNormals: true,
+    lightingModel: LightingModel.LM_DIFFUSE | LightingModel.LM_SPECULAR,
   },
+  lights: [
+    new Light(LightType.AMBIENT, 0.2),
+    new Light(LightType.DIRECTIONAL, 0.2, new Vec(-1, 0, 1)),
+    new Light(LightType.POINT, 0.6, new Vec(-3, 2, -10)),
+  ],
 });
 
-const initDepthBuffer = (size: number) => Array(size).fill(-Infinity);
+const initDepthBuffer = (size: number) => Array(size);
 
 export class Rasterizor {
   canvas: HTMLCanvasElement;
@@ -91,16 +122,17 @@ export class Rasterizor {
       makeTranslationMatrix(camera.position.mul(-1)),
     );
 
-    instances.forEach((instance) => {
+    for (const instance of instances) {
       const transform = multiplyMM4(cameraMatrix, instance.transform);
       const transformedAndClippedModel = this._transformAndClip(
         this.scene.camera.clipPlanes,
         instance,
         transform,
       );
+
       transformedAndClippedModel &&
-        this._renderModel(transformedAndClippedModel);
-    });
+        this._renderModel(transformedAndClippedModel, instance);
+    }
 
     this._updateScene();
   }
@@ -188,6 +220,7 @@ export class Rasterizor {
       // The triangle is fully in front of the plane.
       triangles.push(triangle);
     } else if (inCount === 1) {
+      console.log('clipping triangle with 1 vertex in front of plane');
       // The triangle has one vertex in. Output is one clipped triangle.
       // let A be the vertex with a positive distance
       // compute B' = Intersection(AB, plane)
@@ -205,9 +238,12 @@ export class Rasterizor {
         new Triangle(
           [A, vertices.length - 2, vertices.length - 1],
           triangle.color,
+          // TODO: skip normals for now
+          [],
         ),
       );
     } else if (inCount === 2) {
+      console.log('clipping triangle with 2 vertices in front of plane');
       // The triangle has two vertices in. Output is two clipped triangles.
       // let C be the vertex with a negative distance
       // compute A' = Intersection(AC, plane)
@@ -222,10 +258,12 @@ export class Rasterizor {
       vertices.push(Bv1);
 
       triangles.push(
-        new Triangle([A, B, vertices.length - 2], triangle.color),
+        new Triangle([A, B, vertices.length - 2], triangle.color, []),
         new Triangle(
           [vertices.length - 2, B, vertices.length - 1],
           triangle.color,
+          // TODO: skip normals for now
+          [],
         ),
       );
     }
@@ -233,16 +271,21 @@ export class Rasterizor {
     return triangles;
   }
 
-  protected _renderModel(model: Model) {
+  protected _renderModel(model: Model, instance: Instance) {
     const projectedVertexes = model.vertices.reduce<Point[]>((ret, vertex) => {
       // project the vertex to 2D viewport
       ret.push(this._projectVertex(vertex));
       return ret;
     }, []);
 
-    model.triangles.forEach((triangle) =>
-      this._renderTriangle(triangle, model.vertices, projectedVertexes),
-    );
+    for (const triangle of model.triangles) {
+      this._renderTriangle(
+        triangle,
+        model.vertices,
+        projectedVertexes,
+        instance.orientation,
+      );
+    }
   }
 
   /** render a triangle by the projected vertexes */
@@ -250,6 +293,7 @@ export class Rasterizor {
     triangle: Triangle,
     vertices: Vec[],
     projectedVertexes: Point[],
+    orientation: Mat4x4,
   ) {
     const { renderOptions } = this.scene;
 
@@ -266,7 +310,7 @@ export class Rasterizor {
     const normal = triangle.nor(vertices);
 
     // Backface culling.
-    if (renderOptions?.backfaceCulling) {
+    if (renderOptions.backfaceCulling) {
       // Only need to check one vertex since all vertices are in the same plane.
       const vertexToCamera = vertices[triangle.indexes[0]].mul(-1); // Should be Subtract(camera.position, vertices[triangle.indexes[0]])
       // <N, V-C> <=0 means the angle is more than 90 degrees, backface
@@ -292,13 +336,86 @@ export class Rasterizor {
       new Point(p2.y, 1.0 / v2.z),
     );
 
+    let normal0 = normal,
+      normal1 = normal,
+      normal2 = normal;
+    if (this.scene.renderOptions.useVertexNormals) {
+      const transform = multiplyMM4(
+        transposed(this.scene.camera.orientation),
+        orientation,
+      );
+      normal0 = multiplyMV(
+        transform,
+        Vertex4.fromVec3(triangle.normals[si0]),
+      ).toVec3();
+      normal1 = multiplyMV(
+        transform,
+        Vertex4.fromVec3(triangle.normals[si1]),
+      ).toVec3();
+      normal2 = multiplyMV(
+        transform,
+        Vertex4.fromVec3(triangle.normals[si2]),
+      ).toVec3();
+    }
+
+    let intensity = 0;
+    let [i02, i012]: number[][] = [[], []];
+    let [nx02, nx012]: number[][] = [[], []];
+    let [ny02, ny012]: number[][] = [[], []];
+    let [nz02, nz012]: number[][] = [[], []];
+    if (renderOptions.shadingModel === ShadingModel.FLAT) {
+      const center = new Vec(
+        (v0.x + v1.x + v2.x) / 3.0,
+        (v0.y + v1.y + v2.y) / 3.0,
+        (v0.z + v1.z + v2.z) / 3.0,
+      );
+      intensity = this._computedIllumination(center, normal0);
+    } else if (renderOptions.shadingModel === ShadingModel.GOURAUD) {
+      const i0 = this._computedIllumination(v0, normal0);
+      const i1 = this._computedIllumination(v1, normal1);
+      const i2 = this._computedIllumination(v2, normal2);
+      [i02, i012] = edgeInterpolate(
+        new Point(p0.y, i0),
+        new Point(p1.y, i1),
+        new Point(p2.y, i2),
+      );
+    } else if (renderOptions.shadingModel === ShadingModel.PHONG) {
+      [nx02, nx012] = edgeInterpolate(
+        new Point(p0.y, normal0.x),
+        new Point(p1.y, normal1.x),
+        new Point(p2.y, normal2.x),
+      );
+      [ny02, ny012] = edgeInterpolate(
+        new Point(p0.y, normal0.y),
+        new Point(p1.y, normal1.y),
+        new Point(p2.y, normal2.y),
+      );
+      [nz02, nz012] = edgeInterpolate(
+        new Point(p0.y, normal0.z),
+        new Point(p1.y, normal1.z),
+        new Point(p2.y, normal2.z),
+      );
+    }
+
     // Determine which is left and which is right.
     const m = floor(x02.length / 2);
     let [xLeft, xRight] = [x02, x012];
     let [izLeft, izRight] = [iz02, iz012];
+
+    let [iLeft, iRight] = [i02, i012];
+
+    let [nxLeft, nxRight] = [nx02, nx012];
+    let [nyLeft, nyRight] = [ny02, ny012];
+    let [nzLeft, nzRight] = [nz02, nz012];
     if (x02[m] >= x012[m]) {
       [xLeft, xRight] = [x012, x02];
       [izLeft, izRight] = [iz012, iz02];
+
+      [iLeft, iRight] = [i012, i02];
+
+      [nxLeft, nxRight] = [nx012, nx02];
+      [nyLeft, nyRight] = [ny012, ny02];
+      [nzLeft, nzRight] = [nz012, nz02];
     }
 
     // Draw horizontal segments.
@@ -309,23 +426,128 @@ export class Rasterizor {
       const [zl, zr] = [izLeft[y - p0.y], izRight[y - p0.y]];
 
       const zscan = interpolate(new Point(xl, zl), new Point(xr, zr));
+
+      let iscan: number[] = [];
+      let nxscan: number[] = [];
+      let nyscan: number[] = [];
+      let nzscan: number[] = [];
+      if (renderOptions.shadingModel === ShadingModel.GOURAUD) {
+        const [il, ir] = [iLeft[y - p0.y], iRight[y - p0.y]];
+        iscan = interpolate(new Point(xl, il), new Point(xr, ir));
+      } else if (renderOptions.shadingModel === ShadingModel.PHONG) {
+        const [nxl, nxr] = [nxLeft[y - p0.y], nxRight[y - p0.y]];
+        const [nyl, nyr] = [nyLeft[y - p0.y], nyRight[y - p0.y]];
+        const [nzl, nzr] = [nzLeft[y - p0.y], nzRight[y - p0.y]];
+
+        nxscan = interpolate(new Point(xl, nxl), new Point(xr, nxr));
+        nyscan = interpolate(new Point(xl, nyl), new Point(xr, nyr));
+        nzscan = interpolate(new Point(xl, nzl), new Point(xr, nzr));
+      }
+
       for (let x = xl; x <= xr; x++) {
+        const invZ = zscan[x - xl];
+
         if (
-          !renderOptions?.depthBuffering ||
-          this._updateDepthBufferIfCloser(new Point(x, y), zscan[x - xl])
+          !renderOptions.depthBuffering ||
+          this._updateDepthBufferIfCloser(new Point(x, y), invZ)
         ) {
-          this._putPixel(new Point(x, y), triangle.color);
+          if (renderOptions.shadingModel === ShadingModel.FLAT) {
+            // Just use the per-triangle intensity.
+          } else if (renderOptions.shadingModel === ShadingModel.GOURAUD) {
+            intensity = iscan[x - xl];
+          } else if (renderOptions.shadingModel === ShadingModel.PHONG) {
+            const vertex = this._unProjectVertex(new Point(x, y), invZ);
+            const normal = new Vec(
+              nxscan[x - xl],
+              nyscan[x - xl],
+              nzscan[x - xl],
+            );
+            intensity = this._computedIllumination(vertex, normal);
+          }
+
+          this._putPixel(new Point(x, y), triangle.color.mul(intensity));
         }
       }
     }
 
     // draw triangle outlines
-    if (this.scene.renderOptions?.renderTriangleOutlines) {
+    if (this.scene.renderOptions.renderTriangleOutlines) {
       const outlineColor = triangle.color.mul(0.75);
       this._drawLine(p0, p1, outlineColor);
       this._drawLine(p0, p2, outlineColor);
       this._drawLine(p2, p1, outlineColor);
     }
+  }
+
+  protected _computedIllumination(v0: Vec, normal: Vec) {
+    // console.time('ComputeIllumination');
+    console.time('computing illumination');
+    const illumination = this.scene.lights.reduce((illumination, light) => {
+      illumination += light.computeIllumination(
+        v0,
+        normal,
+        this.scene.camera,
+        this.scene.renderOptions.lightingModel,
+      );
+      return illumination;
+    }, 0);
+    console.timeEnd('computing illumination');
+    return illumination;
+    // let illumination = 0;
+    // for (let l = 0; l < this.scene.lights.length; l++) {
+    //   let light = this.scene.lights[l];
+    //   if (light.type == LightType.AMBIENT) {
+    //     illumination += light.intensity;
+    //     continue;
+    //   }
+
+    //   let vl;
+    //   if (light.type == LightType.DIRECTIONAL) {
+    //     console.time('transposed');
+    //     let cameraMatrix = transposed(this.scene.camera.orientation);
+    //     console.timeEnd('transposed');
+    //     // let rotated_light = multiplyMV(
+    //     //   cameraMatrix,
+    //     //   // IdenticalMatrix4x4,
+    //     //   Vertex4.fromVec3(light.positionOrDirection),
+    //     // );
+    //     // vl = rotated_light.toVec3();
+    //   } else if (light.type == LightType.POINT) {
+    //     // let cameraMatrix = multiplyMM4(
+    //     //   transposed(this.scene.camera.orientation),
+    //     //   makeTranslationMatrix(this.scene.camera.position.mul(-1)),
+    //     // );
+    //     // let transformed_light = multiplyMV(
+    //     //   cameraMatrix,
+    //     //   Vertex4.fromVec3(light.positionOrDirection),
+    //     // );
+    //     // vl = v0.mul(-1).add(transformed_light.toVec3());
+    //   }
+
+    // const lightingModel = this.scene.renderOptions.lightingModel;
+    // // Diffuse component.
+    // if (lightingModel & LightingModel.LM_DIFFUSE) {
+    //   let cos_alpha = vl.dot(normal) / (vl.length() * normal.length());
+    //   if (cos_alpha > 0) {
+    //     illumination += cos_alpha * light.intensity;
+    //   }
+    // }
+
+    // // Specular component.
+    // if (lightingModel & LightingModel.LM_SPECULAR) {
+    //   let reflected = normal.mul(2 * normal.dot(vl)).sub(vl);
+    //   let view = this.scene.camera.position.sub(v0);
+
+    //   let cos_beta =
+    //     reflected.dot(view) / (reflected.length() * view.length());
+    //   if (cos_beta > 0) {
+    //     let specular = 50;
+    //     illumination += Math.pow(cos_beta, specular) * light.intensity;
+    //   }
+    // }
+    // }
+    // console.timeEnd('ComputeIllumination');
+    // return illumination;
   }
 
   protected _updateDepthBufferIfCloser(point: Point, iz: number) {
@@ -510,6 +732,28 @@ export class Rasterizor {
         x * (this.scene.projectionPlanZ / z),
         y * (this.scene.projectionPlanZ / z),
       ),
+    );
+  }
+
+  /** Convert viewport coordinates back to 3D coordinates */
+  protected _unProjectVertex({ x, y }: Point, invZ: number) {
+    const oz = 1.0 / invZ;
+    const ux = (x * oz) / this.scene.projectionPlanZ;
+    const uy = (y * oz) / this.scene.projectionPlanZ;
+    const p2d = this._canvasToViewport(new Point(ux, uy));
+    return new Vec(p2d.x, p2d.y, oz);
+  }
+
+  /**
+   * Convert canvas coordinates to viewport coordinates.
+   * Vx=Cx⋅Vw/Cw
+   * Vy=Cy⋅Vh/Ch
+   */
+  protected _canvasToViewport({ x, y }: Point) {
+    return new Vec(
+      x * (this.scene.viewportSize / this.canvas.width),
+      y * (this.scene.viewportSize / this.canvas.height),
+      this.scene.projectionPlanZ,
     );
   }
 

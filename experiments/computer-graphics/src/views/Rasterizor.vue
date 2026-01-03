@@ -1,9 +1,33 @@
 <template>
   <div class="rasterizor-container">
     <div class="render-options">
-      <div v-for="key in Object.keys(renderOptions)" :key="key" class="item">
-        <label>{{ key }}</label>
-        <input type="checkbox" v-model="renderOptions[key as keyof Scene['renderOptions']]" />
+      <div class="item">
+        <label>depth buffering</label>
+        <input type="checkbox" v-model="renderOptions.depthBuffering" />
+      </div>
+      <div class="item">
+        <label>backface culling</label>
+        <input type="checkbox" v-model="renderOptions.backfaceCulling" />
+      </div>
+      <div class="item">
+        <label>render outlines</label>
+        <input type="checkbox" v-model="renderOptions.renderTriangleOutlines" />
+      </div>
+      <div class="item">
+        <label>Shading Model</label>
+        <select v-model="renderOptions.shadingModel">
+          <option :value="0">Flat</option>
+          <option :value="1">Gouraud</option>
+          <option :value="2">Phong</option>
+        </select>
+      </div>
+      <div class="item">
+        <label>Lighting Model</label>
+        <select v-model="renderOptions.lightingModel">
+          <option :value="1">Diffuse Only</option>
+          <option :value="2">Specular Only</option>
+          <option :value="1|2">Both</option>
+        </select>
       </div>
     </div>
     <div class="scene">
@@ -14,21 +38,17 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
-import { Rasterizor, type Scene } from '../rasterizor';
+import { getDefaultScene, Rasterizor, type Scene } from '../rasterizor';
 import { IdenticalMatrix4x4, makeOYRotationMatrix } from '../rasterizor/helpers';
 import { Camera, Instance } from '../rasterizor/entities';
-import { CUBE } from '../rasterizor/models';
+import { CUBE, SPHERE } from '../rasterizor/models';
 import { Vec } from '../utils';
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 
 const rasterizor = ref<Rasterizor | null>(null);
 
-const renderOptions = ref<Scene['renderOptions']>({
-  depthBuffering: true,
-  backfaceCulling: true,
-  renderTriangleOutlines: true,
-});
+const renderOptions = ref<Scene['renderOptions']>(getDefaultScene().renderOptions);
 
 watch(
   renderOptions,
@@ -39,7 +59,12 @@ watch(
         ...newOptions,
       };
       rasterizor.value.reset();
-      rasterizor.value.render();
+      setTimeout(() => {
+        console.time('rendering time');
+        console.log('call render')
+        rasterizor.value?.render();
+        console.timeEnd('rendering time');
+      }, 0);
     }
   },
   { deep: true }
@@ -56,11 +81,12 @@ onMounted(() => {
         new Instance(CUBE, new Vec(-1.5, 0, 7), IdenticalMatrix4x4, 0.75),
         new Instance(CUBE, new Vec(1.25, 2.5, 7.5), makeOYRotationMatrix(195)),
         // this one should be clipped
-        new Instance(CUBE, new Vec(0, 0, -10), makeOYRotationMatrix(195)),
+        // new Instance(CUBE, new Vec(0, 0, -10), makeOYRotationMatrix(195)),
         // this one should be partially clipped
         // FIXME: not working, probably due to the clipping planes
         // but can clipped by ignore the out-of-boundary points
-        new Instance(CUBE, new Vec(1.5, 0, 4.5), IdenticalMatrix4x4, 0.75)
+        // new Instance(CUBE, new Vec(1.5, 0, 4.5), IdenticalMatrix4x4, 0.75)
+        new Instance(SPHERE, new Vec(1.75, -0.5, 7), IdenticalMatrix4x4, 1.5),
       ],
       camera: new Camera(
         new Vec(-3, 1, 2), 
@@ -86,6 +112,7 @@ onMounted(() => {
     display: flex;
     color: black;
     width: 600px;
+    flex-wrap: wrap;
     .item {
       margin-right: 20px;
       label {

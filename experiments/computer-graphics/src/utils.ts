@@ -139,7 +139,7 @@ export function transformOriginToTopLeft(
 ) {
   return new Point(
     canvas.width / 2 + floor(point.x),
-    canvas.height / 2 - floor(point.y),
+    canvas.height / 2 - floor(point.y) - 1,
   );
 }
 

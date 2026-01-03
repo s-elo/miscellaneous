@@ -13,8 +13,14 @@ export class Triangle {
     /** vertex indices of the model */
     public indexes: [number, number, number],
     public color: Color,
+    public normals: Vec[],
   ) {}
 
+  /**
+   * Get the Normals of a triangle
+   * @param vertices the full vertices list
+   * @returns
+   */
   nor(vertices: Vec[]): Vec {
     const [v0, v1, v2] = this.indexes;
 
