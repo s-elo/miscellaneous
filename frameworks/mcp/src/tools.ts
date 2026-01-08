@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
+import * as z from 'zod/v4';
 
 export function useGetRoom(server: McpServer) {
   const rooms = [
@@ -30,11 +30,14 @@ export function useGetRoom(server: McpServer) {
     },
   ];
 
-  server.tool(
+  server.registerTool(
     'get-room',
-    'Get information about a room',
     {
-      roomId: z.string(),
+      title: 'Get Room',
+      description: 'Get information about a room',
+      inputSchema: {
+        roomId: z.string(),
+      },
     },
     async ({ roomId }) => {
       const room = rooms.find((room) => room.id === Number(roomId));
@@ -56,11 +59,14 @@ export function useGetRoom(server: McpServer) {
 }
 
 export function useGithubRepo(server: McpServer) {
-  server.tool(
+  server.registerTool(
     'get-github-repo',
-    'Get information about a GitHub repository',
     {
-      repoName: z.string(),
+      title: 'Get GitHub Repository',
+      description: 'Get information about a GitHub repository',
+      inputSchema: {
+        repoName: z.string(),
+      },
     },
     async ({ repoName }) => {
       const response = await fetch(
