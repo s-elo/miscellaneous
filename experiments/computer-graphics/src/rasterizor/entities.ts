@@ -1,5 +1,5 @@
-import type { Color } from '../utils';
-import { Vec } from '../utils';
+import { Color, Point } from '../utils';
+import { floor, Vec } from '../utils';
 import {
   Mat4x4,
   multiplyMM4,
@@ -14,7 +14,16 @@ export class Triangle {
     public indexes: [number, number, number],
     public color: Color,
     public normals: Vec[],
+    public texture?: Texture,
+    /** corresponding texture coordinates to the triangle vertexes */
+    public uvs?: Point[],
   ) {}
+
+  async load() {
+    if (this.texture) {
+      await this.texture.load();
+    }
+  }
 
   /**
    * Get the Normals of a triangle
@@ -39,6 +48,10 @@ export class Model {
     public boundsCenter: Vec,
     public boundsRadius: number,
   ) {}
+
+  async load() {
+    return Promise.all(this.triangles.map((triangle) => triangle.load()));
+  }
 }
 
 export class Instance {
@@ -79,4 +92,61 @@ export class Camera {
       new ClipPlane(new Vec(0, s2, s2), 0), // Bottom
     ],
   ) {}
+}
+
+export class Texture {
+  private image: HTMLImageElement = new Image();
+
+  private iw = 0;
+  private ih = 0;
+
+  private canvas: HTMLCanvasElement | null = null;
+  private pixelData: ImageData | null = null;
+
+  constructor(public url: string) {}
+
+  async load() {
+    this.image.src = this.url;
+
+    if (this.image.complete || this.image.onload) return;
+
+    return new Promise<void>((resolve, reject) => {
+      this.image.onload = () => {
+        try {
+          this.iw = this.image.width;
+          this.ih = this.image.height;
+
+          this.canvas = document.createElement('canvas');
+          this.canvas.width = this.iw;
+          this.canvas.height = this.ih;
+          const c2d = this.canvas.getContext('2d');
+          if (!c2d) {
+            throw new Error('Failed to get canvas context');
+          }
+
+          c2d.drawImage(this.image, 0, 0, this.iw, this.ih);
+          this.pixelData = c2d.getImageData(0, 0, this.iw, this.ih);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      };
+    });
+  }
+
+  getTexel(u: number, v: number): Color {
+    const iu = floor(u * this.iw);
+    const iv = floor(v * this.ih);
+
+    const offset = iv * this.iw * 4 + iu * 4;
+    if (!this.pixelData) {
+      throw new Error('Texture image not loaded yet');
+    }
+
+    return new Color(
+      this.pixelData.data[offset + 0],
+      this.pixelData.data[offset + 1],
+      this.pixelData.data[offset + 2],
+    );
+  }
 }

@@ -14,6 +14,10 @@
         <input type="checkbox" v-model="renderOptions.renderTriangleOutlines" />
       </div>
       <div class="item">
+        <label>Perspective-correct (1/z)</label>
+        <input type="checkbox" v-model="renderOptions.usePerspectiveCorrectDepth" />
+      </div>
+      <div class="item">
         <label>Shading Model</label>
         <select v-model="renderOptions.shadingModel">
           <option :value="0">Flat</option>
@@ -70,9 +74,11 @@ watch(
   { deep: true }
 );
 
-onMounted(() => {
+onMounted(async () => {
   if (!canvasRef.value) return;
 
+  await CUBE.load();
+  await SPHERE.load();
 
   rasterizor.value = new Rasterizor({
     canvas: canvasRef.value,

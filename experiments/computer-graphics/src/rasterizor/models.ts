@@ -1,5 +1,5 @@
-import { Color, Vec } from '../utils';
-import { Model, Triangle } from './entities';
+import { Color, Point, Vec } from '../utils';
+import { Model, Texture, Triangle } from './entities';
 
 const RED = new Color(255, 0, 0);
 const GREEN = new Color(0, 255, 0);
@@ -7,6 +7,8 @@ const BLUE = new Color(0, 0, 255);
 const YELLOW = new Color(255, 255, 0);
 const PURPLE = new Color(255, 0, 255);
 const CYAN = new Color(0, 255, 255);
+
+const woodTexture = new Texture('crate-texture.jpg');
 
 /** A central standard cube */
 export const CUBE = new Model(
@@ -26,66 +28,90 @@ export const CUBE = new Model(
    * that is, the camera is looking at the front face of the triangle
    */
   [
-    new Triangle([0, 1, 2], RED, [
-      new Vec(0, 0, 1),
-      new Vec(0, 0, 1),
-      new Vec(0, 0, 1),
-    ]),
-    new Triangle([0, 2, 3], RED, [
-      new Vec(0, 0, 1),
-      new Vec(0, 0, 1),
-      new Vec(0, 0, 1),
-    ]),
-    new Triangle([4, 0, 3], GREEN, [
-      new Vec(1, 0, 0),
-      new Vec(1, 0, 0),
-      new Vec(1, 0, 0),
-    ]),
-    new Triangle([4, 3, 7], GREEN, [
-      new Vec(1, 0, 0),
-      new Vec(1, 0, 0),
-      new Vec(1, 0, 0),
-    ]),
-    new Triangle([5, 4, 7], BLUE, [
-      new Vec(0, 0, -1),
-      new Vec(0, 0, -1),
-      new Vec(0, 0, -1),
-    ]),
-    new Triangle([5, 7, 6], BLUE, [
-      new Vec(0, 0, -1),
-      new Vec(0, 0, -1),
-      new Vec(0, 0, -1),
-    ]),
-    new Triangle([1, 5, 6], YELLOW, [
-      new Vec(-1, 0, 0),
-      new Vec(-1, 0, 0),
-      new Vec(-1, 0, 0),
-    ]),
-    new Triangle([1, 6, 2], YELLOW, [
-      new Vec(-1, 0, 0),
-      new Vec(-1, 0, 0),
-      new Vec(-1, 0, 0),
-    ]),
-    new Triangle([1, 0, 5], PURPLE, [
-      new Vec(0, 1, 0),
-      new Vec(0, 1, 0),
-      new Vec(0, 1, 0),
-    ]),
-    new Triangle([5, 0, 4], PURPLE, [
-      new Vec(0, 1, 0),
-      new Vec(0, 1, 0),
-      new Vec(0, 1, 0),
-    ]),
-    new Triangle([2, 6, 7], CYAN, [
-      new Vec(0, -1, 0),
-      new Vec(0, -1, 0),
-      new Vec(0, -1, 0),
-    ]),
-    new Triangle([2, 7, 3], CYAN, [
-      new Vec(0, -1, 0),
-      new Vec(0, -1, 0),
-      new Vec(0, -1, 0),
-    ]),
+    new Triangle(
+      [0, 1, 2],
+      RED,
+      [new Vec(0, 0, 1), new Vec(0, 0, 1), new Vec(0, 0, 1)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 0), new Point(1, 1)],
+    ),
+    new Triangle(
+      [0, 2, 3],
+      RED,
+      [new Vec(0, 0, 1), new Vec(0, 0, 1), new Vec(0, 0, 1)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 1), new Point(0, 1)],
+    ),
+    new Triangle(
+      [4, 0, 3],
+      GREEN,
+      [new Vec(1, 0, 0), new Vec(1, 0, 0), new Vec(1, 0, 0)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 0), new Point(1, 1)],
+    ),
+    new Triangle(
+      [4, 3, 7],
+      GREEN,
+      [new Vec(1, 0, 0), new Vec(1, 0, 0), new Vec(1, 0, 0)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 1), new Point(0, 1)],
+    ),
+    new Triangle(
+      [5, 4, 7],
+      BLUE,
+      [new Vec(0, 0, -1), new Vec(0, 0, -1), new Vec(0, 0, -1)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 0), new Point(1, 1)],
+    ),
+    new Triangle(
+      [5, 7, 6],
+      BLUE,
+      [new Vec(0, 0, -1), new Vec(0, 0, -1), new Vec(0, 0, -1)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 1), new Point(0, 1)],
+    ),
+    new Triangle(
+      [1, 5, 6],
+      YELLOW,
+      [new Vec(-1, 0, 0), new Vec(-1, 0, 0), new Vec(-1, 0, 0)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 0), new Point(1, 1)],
+    ),
+    new Triangle(
+      [1, 6, 2],
+      YELLOW,
+      [new Vec(-1, 0, 0), new Vec(-1, 0, 0), new Vec(-1, 0, 0)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 1), new Point(0, 1)],
+    ),
+    new Triangle(
+      [1, 0, 5],
+      PURPLE,
+      [new Vec(0, 1, 0), new Vec(0, 1, 0), new Vec(0, 1, 0)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 0), new Point(1, 1)],
+    ),
+    new Triangle(
+      [5, 0, 4],
+      PURPLE,
+      [new Vec(0, 1, 0), new Vec(0, 1, 0), new Vec(0, 1, 0)],
+      woodTexture,
+      [new Point(0, 1), new Point(1, 1), new Point(0, 0)],
+    ),
+    new Triangle(
+      [2, 6, 7],
+      CYAN,
+      [new Vec(0, -1, 0), new Vec(0, -1, 0), new Vec(0, -1, 0)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 0), new Point(1, 1)],
+    ),
+    new Triangle(
+      [2, 7, 3],
+      CYAN,
+      [new Vec(0, -1, 0), new Vec(0, -1, 0), new Vec(0, -1, 0)],
+      woodTexture,
+      [new Point(0, 0), new Point(1, 1), new Point(0, 1)],
+    ),
   ],
   new Vec(0, 0, 0),
   Math.sqrt(3),

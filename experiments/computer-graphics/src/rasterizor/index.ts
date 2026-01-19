@@ -52,6 +52,8 @@ export interface Scene {
     shadingModel: ShadingModel;
     /** include which lighting model, diffuse or specular or both */
     lightingModel: number;
+    /** if to use perspective correct depth for texture interpolation */
+    usePerspectiveCorrectDepth: boolean;
   };
   lights: Light[];
 }
@@ -73,6 +75,7 @@ export const getDefaultScene = () => ({
     shadingModel: ShadingModel.GOURAUD,
     useVertexNormals: true,
     lightingModel: LightingModel.LM_DIFFUSE | LightingModel.LM_SPECULAR,
+    usePerspectiveCorrectDepth: true,
   },
   lights: [
     new Light(LightType.AMBIENT, 0.2),
@@ -297,15 +300,6 @@ export class Rasterizor {
   ) {
     const { renderOptions } = this.scene;
 
-    // Sort the points by projected point Y values
-    const [si0, si1, si2] = this._getSortedVertexIndexes(
-      triangle.indexes,
-      projectedVertexes,
-    );
-    const v0 = vertices[triangle.indexes[si0]];
-    const v1 = vertices[triangle.indexes[si1]];
-    const v2 = vertices[triangle.indexes[si2]];
-
     // Compute triangle normal. Use the unsorted vertices, otherwise the winding of the points may change.
     const normal = triangle.nor(vertices);
 
@@ -318,6 +312,15 @@ export class Rasterizor {
         return;
       }
     }
+
+    // Sort the points by projected point Y values
+    const [si0, si1, si2] = this._getSortedVertexIndexes(
+      triangle.indexes,
+      projectedVertexes,
+    );
+    const v0 = vertices[triangle.indexes[si0]];
+    const v1 = vertices[triangle.indexes[si1]];
+    const v2 = vertices[triangle.indexes[si2]];
 
     // Get attribute values (X, 1/Z) at the vertices.
     const p0 = projectedVertexes[triangle.indexes[si0]];
@@ -335,6 +338,36 @@ export class Rasterizor {
       new Point(p1.y, 1.0 / v1.z),
       new Point(p2.y, 1.0 / v2.z),
     );
+
+    let uz02: number[] = [],
+      uz012: number[] = [];
+    let vz02: number[] = [],
+      vz012: number[] = [];
+    if (triangle.texture && triangle.uvs) {
+      if (renderOptions.usePerspectiveCorrectDepth) {
+        [uz02, uz012] = edgeInterpolate(
+          new Point(p0.y, triangle.uvs[si0].x / v0.z),
+          new Point(p1.y, triangle.uvs[si1].x / v1.z),
+          new Point(p2.y, triangle.uvs[si2].x / v2.z),
+        );
+        [vz02, vz012] = edgeInterpolate(
+          new Point(p0.y, triangle.uvs[si0].y / v0.z),
+          new Point(p1.y, triangle.uvs[si1].y / v1.z),
+          new Point(p2.y, triangle.uvs[si2].y / v2.z),
+        );
+      } else {
+        [uz02, uz012] = edgeInterpolate(
+          new Point(p0.y, triangle.uvs[si0].x),
+          new Point(p1.y, triangle.uvs[si1].x),
+          new Point(p2.y, triangle.uvs[si2].x),
+        );
+        [vz02, vz012] = edgeInterpolate(
+          new Point(p0.y, triangle.uvs[si0].y),
+          new Point(p1.y, triangle.uvs[si1].y),
+          new Point(p2.y, triangle.uvs[si2].y),
+        );
+      }
+    }
 
     let normal0 = normal,
       normal1 = normal,
@@ -407,6 +440,9 @@ export class Rasterizor {
     let [nxLeft, nxRight] = [nx02, nx012];
     let [nyLeft, nyRight] = [ny02, ny012];
     let [nzLeft, nzRight] = [nz02, nz012];
+
+    let [uzLeft, uzRight] = [uz02, uz012];
+    let [vzLeft, vzRight] = [vz02, vz012];
     if (x02[m] >= x012[m]) {
       [xLeft, xRight] = [x012, x02];
       [izLeft, izRight] = [iz012, iz02];
@@ -416,6 +452,9 @@ export class Rasterizor {
       [nxLeft, nxRight] = [nx012, nx02];
       [nyLeft, nyRight] = [ny012, ny02];
       [nzLeft, nzRight] = [nz012, nz02];
+
+      [uzLeft, uzRight] = [uz012, uz02];
+      [vzLeft, vzRight] = [vz012, vz02];
     }
 
     // Draw horizontal segments.
@@ -431,6 +470,8 @@ export class Rasterizor {
       let nxscan: number[] = [];
       let nyscan: number[] = [];
       let nzscan: number[] = [];
+      let uzscan: number[] = [];
+      let vzscan: number[] = [];
       if (renderOptions.shadingModel === ShadingModel.GOURAUD) {
         const [il, ir] = [iLeft[y - p0.y], iRight[y - p0.y]];
         iscan = interpolate(new Point(xl, il), new Point(xr, ir));
@@ -442,6 +483,17 @@ export class Rasterizor {
         nxscan = interpolate(new Point(xl, nxl), new Point(xr, nxr));
         nyscan = interpolate(new Point(xl, nyl), new Point(xr, nyr));
         nzscan = interpolate(new Point(xl, nzl), new Point(xr, nzr));
+      }
+
+      if (triangle.texture) {
+        uzscan = interpolate(
+          new Point(xl, uzLeft[y - p0.y]),
+          new Point(xr, uzRight[y - p0.y]),
+        );
+        vzscan = interpolate(
+          new Point(xl, vzLeft[y - p0.y]),
+          new Point(xr, vzRight[y - p0.y]),
+        );
       }
 
       for (let x = xl; x <= xr; x++) {
@@ -465,7 +517,22 @@ export class Rasterizor {
             intensity = this._computedIllumination(vertex, normal);
           }
 
-          this._putPixel(new Point(x, y), triangle.color.mul(intensity));
+          let color: Color;
+          if (triangle.texture) {
+            let u: number, v: number;
+            if (renderOptions.usePerspectiveCorrectDepth) {
+              u = uzscan[x - xl] / zscan[x - xl];
+              v = vzscan[x - xl] / zscan[x - xl];
+            } else {
+              u = uzscan[x - xl];
+              v = vzscan[x - xl];
+            }
+            color = triangle.texture.getTexel(u, v);
+          } else {
+            color = triangle.color;
+          }
+
+          this._putPixel(new Point(x, y), color.mul(intensity));
         }
       }
     }
