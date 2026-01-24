@@ -28,6 +28,27 @@ function mergeTwoLists(
 ): ListNode | null {
   const result = new ListNode(0);
 
+  let p1 = list1;
+  let p2 = list2;
+  let cur = result;
+
+  while (p1 !== null && p2 !== null) {
+    if (p1.val < p2.val) {
+      cur.next = p1;
+      p1 = p1.next;
+    } else {
+      cur.next = p2;
+      p2 = p2.next;
+    }
+    cur = cur.next;
+  }
+
+  if (p1 !== null) {
+    cur.next = p1;
+  } else {
+    cur.next = p2;
+  }
+
   return result.next;
 }
 // @lc code=end
