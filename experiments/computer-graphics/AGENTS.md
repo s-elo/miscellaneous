@@ -1,14 +1,116 @@
-# AGENTS.md
+# Temp
 
-You are an expert in JavaScript, Rsbuild, and web application development. You write maintainable, performant, and accessible code.
+## CUBE WebGl
 
-## Commands
+```ts
+// Fill the buffer with the values that define a letter 'F'.
+function setGeometry(gl) {
+  gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([
+          // front
+          0, 0, 0,
+          0, 100, 0,
+          100, 0, 0,
 
-- `npm run dev` - Start the dev server
-- `npm run build` - Build the app for production
-- `npm run preview` - Preview the production build locally
+          100, 0, 0,
+          0, 100, 0,
+          100, 100, 0,
 
-## Docs
+          // back
+          0, 0, 100,
+          100, 0, 100,
+          0, 100, 100,
 
-- Rsbuild: <https://rsbuild.rs/llms.txt>
-- Rspack: <https://rspack.rs/llms.txt>
+          100, 0, 100,
+          100, 100, 100,
+          0, 100, 100,
+
+          // left
+          0, 0, 0,
+          0, 0, 100,
+          0, 100, 0,
+          
+          0, 0, 100,
+          0, 100, 100,
+          0, 100, 0,
+
+          // right
+          100, 0, 0,
+          100, 100, 0,
+          100, 0, 100,
+
+          100, 0, 100,
+          100, 100, 0,
+          100, 100, 100,
+
+          // top
+          0, 0, 0,
+          100, 0, 0,
+          0, 0, 100,
+
+          0, 0, 100,
+          100, 0, 0,
+          100, 0, 100,
+
+          // bottom
+          0, 100, 0,
+          0, 100, 100,
+          100, 100, 0,
+
+          0, 100, 100,
+          100, 100, 100,
+          100, 100, 0,
+          ]),
+      gl.STATIC_DRAW);
+}
+// Fill the buffer with colors for the 'F'.
+function setColors(gl) {
+  gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Uint8Array([
+        200, 200, 100,
+        200, 200, 100,
+        200, 200, 100,
+        200, 200, 100,
+        200, 200, 100,
+        200, 200, 100,
+
+        200, 100, 100,
+        200, 100, 100,
+        200, 100, 100,
+        200, 100, 100,
+        200, 100, 100,
+        200, 100, 100,
+
+        100, 100, 100,
+        100, 100, 100,
+        100, 100, 100,
+        100, 100, 100,
+        100, 100, 100,
+        100, 100, 100,
+
+        100, 150, 100,
+        100, 150, 100,
+        100, 150, 100,
+        100, 150, 100,
+        100, 150, 100,
+        100, 150, 100,
+
+        200, 150, 100,
+        200, 150, 100,
+        200, 150, 100,
+        200, 150, 100,
+        200, 150, 100,
+        200, 150, 100,
+        
+        200, 150, 200,
+        200, 150, 200,
+        200, 150, 200,
+        200, 150, 200,
+        200, 150, 200,
+        200, 150, 200
+      ]),
+      gl.STATIC_DRAW);
+}
+```

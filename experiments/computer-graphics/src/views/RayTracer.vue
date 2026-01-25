@@ -1,6 +1,7 @@
 <template>
   <div class="ray-tracer-container">
-    <canvas ref="canvasRef" width="600" height="600"></canvas>
+    <canvas v-show="!loading" ref="canvasRef" width="600" height="600"></canvas>
+    <div v-show="loading">Loading...</div>
   </div>
 </template>
 
@@ -9,15 +10,15 @@ import { ref, onMounted } from 'vue';
 import { RayTracer } from '../ray-tracing';
 import { Sphere, Vec, Color } from '../utils';
 
+const loading = ref(false);
+
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 
 const rayTracer = ref<RayTracer | null>(null);
 
-onMounted(() => {
-  if (!canvasRef.value) return;
-
+const render = (canvas: HTMLCanvasElement) => {
   rayTracer.value = new RayTracer({
-    canvas: canvasRef.value,
+    canvas,
     scene: {
       backgroundColor: new Color(0, 0, 0),
       spheres: [
@@ -29,7 +30,24 @@ onMounted(() => {
     }
   })
 
-  rayTracer.value.render()
+  rayTracer.value.render();
+}
+
+onMounted(async () => {
+  if (!canvasRef.value) return;
+
+  loading.value = true;
+
+  try {
+    await new Promise<void>((resolve) => setTimeout(() => {
+      canvasRef.value && render(canvasRef.value);
+      resolve();
+    }, 100)); // simulate loading delay
+  } catch (error) {
+    console.error('Error initializing RayTracer:', error);
+  } finally {
+    loading.value = false;
+  }
 })
 </script>
 

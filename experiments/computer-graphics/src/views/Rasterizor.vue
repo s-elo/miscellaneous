@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
 import { getDefaultScene, Rasterizor, type Scene } from '../rasterizor';
 import { IdenticalMatrix4x4, makeOYRotationMatrix } from '../rasterizor/helpers';
 import { Camera, Instance } from '../rasterizor/entities';
@@ -103,6 +103,10 @@ onMounted(async () => {
   });
 
   rasterizor.value.render();
+});
+
+onBeforeUnmount(() => {
+  rasterizor.value?.reset();
 });
 </script>
 
